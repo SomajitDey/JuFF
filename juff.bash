@@ -9,11 +9,8 @@ GITBOX=${REPO}'/'${SELF}
 CWD=${PWD}
 
 push() {
+    git add --all
     git diff --quiet HEAD -- ${1} || git commit ${1} -qm 'bot' && git push -q origin main
-}
-
-pull() {
-    git pull -q origin main
 }
 
 quit() {
@@ -40,18 +37,19 @@ local POSTBOX=${REPO}'/'${TO}
 
 if [ -f "${2}" ]; then
     local URL=`curl -sfF "file=@${2}" https://file.io/?expires=2 | grep -o "https://file.io/[A-Za-z0-9]*"`
-    [ ! -z "${URL}" ] && return 2
+    [ -z "${URL}" ] && return 2
     card '${URL} -o ${2##*/}' .dl
 fi
 
 local TEXT=${FROM}':'$'\t'${2##*/}
 local URL=`curl -s --data "text=${TEXT}" https://file.io | grep -o "https://file.io/[A-Za-z0-9]*"`
-[ ! -z "${URL}" ] && return 3
+[ -z "${URL}" ] && return 3
 card ${URL} .txt
 
 }
 
-get() {
+pull() {
+git pull -q origin main
 local EXT=${1}
 if ! ls ${GITBOX}/*${EXT} >/dev/null 2>&1 ; return 1
 for FILE in ${GITBOX}/*${EXT}; do
@@ -60,13 +58,21 @@ for FILE in ${GITBOX}/*${EXT}; do
         local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*[:]*[a-z0-9._]*[@][a-z0-9._]*`
         local SPEC=${INBOX}'/'${FROM}'.txt'
         xargs curl -sfw '\n' < ${FILE} | tee -a ${LATEST} >> ${SPEC}
-        git rm ${FILE} ;;
+        ;;
     .dl)
         DOWNLOADED=`xargs curl -sfw %{filename_effective}'\n' < ${FILE}`
         local DIR='${DOWNLOADS}/${FROM}/'
         [ ! -d "${DIR}"] mkdir ${DIR}
         [ -e "${DOWNLOADED}"] mv ${DOWNLOADED} ${DIR}
     esac
+    git rm -q ${FILE}
 done
 fi
+}
+
+daemon() {
+while true ; do 
+    pull
+    push
+done
 }
