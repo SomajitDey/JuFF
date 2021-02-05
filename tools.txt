@@ -1,3 +1,9 @@
+init
+daemon &
+ui
+
+
+wait
 tac
 timeout
 watch
