@@ -1,3 +1,6 @@
+read -e for autocompletion using files & directories
+directories have slash at end.
+So make directories hidden. Just create files of the same name.
 init
 daemon &
 ui
