@@ -1,6 +1,6 @@
 #Display text with real-life updates. The moment user presses any key 
 #even if that key is an arrow key, go back to static view.
-trap exit INT 
+trap date INT 
 unset REPLY
 tput civis
 while [ -z "${REPLY}" ]; do
@@ -11,3 +11,12 @@ done
 tput clear
 sed -n p $1
 tput cnorm
+echo ${REPLY} | grep ^[A-Za-z0-9] >/dev/null
+if [ $? == 0 ]; then
+read -p 'Type : '${REPLY} NEXT
+echo ${NEXT} | grep ^[A-Za-z0-9] >/dev/null
+if [ $? == 0 ]; then 
+REPLY=${REPLY}${NEXT}
+echo ${REPLY} 'done'
+fi
+fi
