@@ -36,7 +36,10 @@ push() {
 }
 
 quit() {
-    cd ${CWD} ; tput cnorm ; tput sgr0 ; tput rmcup ; exit ${1}
+    cd ${CWD} ; tput cnorm ; tput sgr0 ; tput rmcup
+    pkill -SIGQUIT daemon
+    wait
+    exit ${1}
 }
 
 post() {
@@ -97,7 +100,12 @@ fi
 }
 
 daemon() {
-while true ; do 
+local WRAPUP=''
+handler() {
+WRAPUP='Signal'
+}
+trap handler QUIT
+while [ -z "${WRAPUP}" ] ; do
     pull
     push
 done
