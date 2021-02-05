@@ -1,3 +1,5 @@
+tac
+timeout
 watch
 less -r
 more
