@@ -11,6 +11,7 @@ local PROMPT1=${2}
 local PROMPT2=${3}
 local MARGIN=5
 
+unset MESSAGE
 while [ -z "${MESSAGE}" ]; do
     while [ -z "${EXITLOOP}" ]; do
         local LINES=`tput lines`
