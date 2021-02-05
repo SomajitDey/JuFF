@@ -1,10 +1,31 @@
-REMOTE=
-REPO=
-INBOX=
+#TODO: Inbox will hold repo and local copies of chats as hidden files and dir.
+#Withing repo every dir should be hidden and file with dir names must be present: 
+#This is for autocomplete with :: read -ep
+
+ESC=$'\e'
+CSI=${ESC}'['
+RED=${CSI}'31m'     #or equivalently, `tput setaf 1`
+GREEN=${CSI}'32m'
+YELLOW=${CSI}'33m'
+BLUE=${CSI}'34m'
+MAGENTA=${CSI}'35m'
+CYAN=${CSI}'36m'
+NORMAL=${CSI}'0m'   #or equivalently, `tput sgr0`
+BOLD=${CSI}'1m'     #or equivalently, `tput bold`
+UNDERLINE=${CSI}'4m'    #or equivalently, `tput smul`
+
+
+REMOTE=Use ssh for faster git push
+BRANCH='main'
+INBOX=~'/Inbox_Juff'
+REPO=${INBOX}'/.git'
 LATEST=${INBOX}'/latest.txt'
-DOWNLOADS=
-SELF=
-GITBOX=${REPO}'/'${SELF}
+DOWNLOADS=${INBOX}'/Downloads'
+NAME=
+EMAIL=
+# MOVE SELF to init()
+SELF=${NAME}'::'${EMAIL}
+GITBOX=${REPO}'/.'${SELF}
 
 CWD=${PWD}
 
@@ -31,14 +52,14 @@ echo -e ${1} > ${BLOB}
 
 local FROM=${SELF}
 local TO=${1}
-local POSTBOX=${REPO}'/'${TO}
+local POSTBOX=${REPO}'/.'${TO}
 
 [ ! -d "${POSTBOX}" ] && return 1
 
 if [ -f "${2}" ]; then
     local URL=`curl -sfF "file=@${2}" https://file.io/?expires=2 | grep -o "https://file.io/[A-Za-z0-9]*"`
     [ -z "${URL}" ] && return 2
-    card '${URL} -o ${2##*/}' .dl
+    card '${URL} -o /tmp/${2##*/}' .dl
     local TEXT=${FROM}' sent you '$'\t'${2##*/}
 else
     local TEXT=${FROM}'>>'$'\t'${2}
@@ -64,7 +85,7 @@ for FILE in ${GITBOX}/*${EXT}; do
         xargs curl -sfw '\n' < ${FILE} | tee -a ${LATEST} >> ${CHAT}
         ;;
     .dl)
-        DOWNLOADED=`xargs curl -sfw %{filename_effective}'\n' < ${FILE}`
+        local DOWNLOADED=`xargs curl -sfw %{filename_effective}'\n' < ${FILE}`
         local DIR='${DOWNLOADS}/${FROM}/'
         [ ! -d "${DIR}"] mkdir ${DIR}
         [ -e "${DOWNLOADED}"] mv --backup=numbered ${DOWNLOADED} ${DIR}
@@ -85,6 +106,8 @@ done
 
 ##########################################################################
 ########################  TEST  ##########################################
+init
+
 daemon &
 tput smcup && tput clear
 
@@ -96,11 +119,7 @@ local CORRESPONDENT
 show() {
 
 clean(){
-tput cup 0,0 ; tput el #tput home may be used instead of tput cup 0,0 
-for count in `seq 1 ${1}`
-do
-    tput cud1 ; tput el
-done
+tput cuu 5 ; tput ed
 }
 
 if [ -z "${CORRESPONDENT}" ]; then
