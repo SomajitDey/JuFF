@@ -5,9 +5,9 @@ unset REPLY
 tput civis
 while [ -z "${REPLY}" ]; do
 tput clear
-timeout 0.5 tail -f text
+timeout 0.5 tail -fn $2 $1
 read -st 0.5 -n 1
 done
 tput clear
-sed -n p text
+sed -n p $1
 tput cnorm
