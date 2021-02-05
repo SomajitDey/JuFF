@@ -4,15 +4,16 @@
 
 ESC=$'\e'
 CSI=${ESC}'['
-RED=${CSI}'31m'     #or equivalently, `tput setaf 1`
-GREEN=${CSI}'32m'
-YELLOW=${CSI}'33m'
-BLUE=${CSI}'34m'
-MAGENTA=${CSI}'35m'
-CYAN=${CSI}'36m'
-NORMAL=${CSI}'0m'   #or equivalently, `tput sgr0`
-BOLD=${CSI}'1m'     #or equivalently, `tput bold`
-UNDERLINE=${CSI}'4m'    #or equivalently, `tput smul`
+BIT='9'     #If 16-bit color is supported; BIT=3 otherwise
+RED=${CSI}${BIT}'1m'     #or equivalently, RED=`tput setaf 1`
+GREEN=${CSI}${BIT}'2m'
+YELLOW=${CSI}${BIT}'3m'
+BLUE=${CSI}${BIT}'4m'
+MAGENTA=${CSI}${BIT}'5m'
+CYAN=${CSI}${BIT}'6m'
+NORMAL=${CSI}'0m'   #or equivalently, NORMAL=`tput sgr0`
+BOLD=${CSI}'1m'     #or equivalently, BOLD=`tput bold`
+UNDERLINE=${CSI}'4m'    #or equivalently, `UNDERLINE=tput smul`
 
 
 REMOTE=Use ssh for faster git push
