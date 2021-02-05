@@ -116,7 +116,8 @@ tput cup 0,0
 if [ -z "$CORRESPONDENT" ]; then
     read -p 'Chat with: ' CORRESPONDENT #TODO: Add timeout here
 else
-echo 'Chat with : ${CORRESPONDENT}'
+    echo 'Chat with : ${CORRESPONDENT}'
+fi
 }
 
 
