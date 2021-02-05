@@ -1,5 +1,8 @@
 #Display text with real-life updates. The moment user presses any key 
 #even if that key is an arrow key, go back to static view.
+[ -z "${1}" ] && echo 'Give file as 1st arg' && exit
+[ -z "${2}" ] && echo 'Give number as 2nd arg' && exit
+
 trap date INT 
 unset REPLY
 tput civis
