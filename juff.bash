@@ -90,8 +90,35 @@ tput smcup && tput clear
 
 
 ui() {
-read -p 'Whom:' CORRESPONDENT && tput clear
-tput cud 5
-CHAT=${INBOX}'/'${CORRESPONDENT}'.txt'
+
+local CORRESPONDENT
+
+show() {
+
+clean(){
+tput cup 0,0 ; tput el #tput home may be used instead of tput cup 0,0 
+for count in `seq 1 ${1}`
+do
+    tput cud1 ; tput el
+done
+}
+
+if [ -z "${CORRESPONDENT}" ]; then
+    local CHAT=${LATEST}
+else
+    local CHAT=${INBOX}'/'${CORRESPONDENT}'.txt'
+fi
+
+tput clear
 [ -e "${CHAT}"] && cat ${CHAT}
+clean 5
+tput cup 0,0
+if [ -z "$CORRESPONDENT" ]; then
+    read -p 'Chat with: ' CORRESPONDENT #TODO: Add timeout here
+else
+echo 'Chat with : ${CORRESPONDENT}'
+}
+
+
+show
 }
