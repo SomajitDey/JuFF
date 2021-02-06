@@ -4,15 +4,15 @@
 
 ESC=$'\e'
 CSI=${ESC}'['
-BIT='9'     #If 16-bit color is supported; BIT=3 otherwise
-RED=${CSI}${BIT}'1m'     #or equivalently, RED=`tput setaf 1`
+BIT='9'    #If 16-bit color is supported; BIT=3 otherwise
+RED=${CSI}${BIT}'1m'    #or equivalently, RED=`tput setaf 1`
 GREEN=${CSI}${BIT}'2m'
 YELLOW=${CSI}${BIT}'3m'
 BLUE=${CSI}${BIT}'4m'
 MAGENTA=${CSI}${BIT}'5m'
 CYAN=${CSI}${BIT}'6m'
-NORMAL=${CSI}'0m'   #or equivalently, NORMAL=`tput sgr0`
-BOLD=${CSI}'1m'     #or equivalently, BOLD=`tput bold`
+NORMAL=${CSI}'0m'    #or equivalently, NORMAL=`tput sgr0`
+BOLD=${CSI}'1m'    #or equivalently, BOLD=`tput bold`
 UNDERLINE=${CSI}'4m'    #or equivalently, `UNDERLINE=tput smul`
 
 
@@ -22,11 +22,21 @@ INBOX=~'/Inbox_Juff'
 REPO=${INBOX}'/.git'
 LATEST=${INBOX}'/latest.txt'
 DOWNLOADS=${INBOX}'/Downloads'
-NAME=
-EMAIL=
+LOGS=${INBOX}'/.logs'
+PUSH_LOG=
+PULL_LOG=
+GET_LOG=
+LASTACT_LOG=    #shows status of last action
+
+SELF_NAME=
+SELF_EMAIL=
 # MOVE SELF to init()
 SELF=${NAME}'::'${EMAIL}
 GITBOX=${REPO}'/.'${SELF}
+
+unset MESSAGE   #to be renamed INPUT
+unset MSG    #${2}, otherwise empty
+unset CORRESPONDENT    #${1}, otherwise empty
 
 CWD=${PWD}
 
