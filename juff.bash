@@ -1,34 +1,33 @@
-#Double quotes "${SENTENCE}" for sentence as a single text. Use when passing parameter to functions
-#Use coproc for daemon, coproc_PID, coproc[0], coproc[1] see man bash
+readonly_globals() {
+declare -rg RED=`tput setaf 1`
+declare -rg GREEN=`tput setaf 2`
+declare -rg YELLOW=`tput setaf 3`
+declare -rg BLUE=`tput setaf 4`
+declare -rg MAGENTA=`tput setaf 5`
+declare -rg CYAN=`tput setaf 6`
+declare -rg NORMAL=`tput sgr0`
+declare -rg BOLD=`tput bold`
+declare -rg UNDERLINE=`tput smul`
+declare -rg BELL=`tput bel`
 
+declare -rg REMOTE=Use ssh for faster git push
+declare -rg BRANCH='main'
+declare -rg INBOX=${HOME}'/Inbox_Juff'
+declare -rg REPO=${INBOX}'/.git'
+declare -rg LATEST=${INBOX}'/latest.txt'
+declare -rg DOWNLOADS=${INBOX}'/Downloads'
+declare -rg LOGS=${INBOX}'/.logs'
+declare -rg PUSH_LOG=
+declare -rg PULL_LOG=
+declare -rg GET_LOG=
+declare -rg LASTACT_LOG=    #shows status of last action
+}
 
-#TODO: Inbox will hold repo and local copies of chats as hidden files and dir.
-#Withing repo every dir should be hidden and file with dir names must be present: 
-#This is for autocomplete with :: read -ep
+timestamp() {
+  date +::%s
+}
 
-RED=`tput setaf 1`
-GREEN=`tput setaf 2`
-YELLOW=`tput setaf 3`
-BLUE=`tput setaf 4`
-MAGENTA=`tput setaf 5`
-CYAN=`tput setaf 6`
-NORMAL=`tput sgr0`
-BOLD=`tput bold`
-UNDERLINE=`tput smul`
-
-
-REMOTE=Use ssh for faster git push
-BRANCH='main'
-INBOX=~'/Inbox_Juff'
-REPO=${INBOX}'/.git'
-LATEST=${INBOX}'/latest.txt'
-DOWNLOADS=${INBOX}'/Downloads'
-LOGS=${INBOX}'/.logs'
-PUSH_LOG=
-PULL_LOG=
-GET_LOG=
-LASTACT_LOG=    #shows status of last action
-
+config() {
 SELF_NAME=
 SELF_EMAIL=
 # MOVE SELF to init()
@@ -38,16 +37,15 @@ GITBOX=${REPO}'/.'${SELF}
 unset MESSAGE   #to be renamed INPUT
 unset MSG    #${2}, otherwise empty
 unset CORRESPONDENT    #${1}, otherwise empty
-
-CWD=${PWD}
+}
 
 push() {
     git add --all
-    git diff --quiet HEAD -- ${1} || git commit ${1} -qm 'bot' && git push -q origin main
+    git diff --quiet HEAD || { git commit -qm 'by juff-daemon' && git push -q origin main }
 }
 
 quit() {
-    cd ${CWD} ; tput cnorm ; tput sgr0 ; tput rmcup
+    cd ${OLDPWD} ; tput cnorm ; tput sgr0 ; tput rmcup
     pkill -SIGQUIT daemon
     wait
     exit ${1}
@@ -56,10 +54,6 @@ quit() {
 post() {
 
 card() {
-
-timestamp() {
-  date +::%s
-}
 
 local BLOB=${POSTBOX}'/'${FROM}`timestamp`${2}
 echo -e ${1} > ${BLOB}
@@ -122,43 +116,55 @@ while [ -z "${WRAPUP}" ] ; do
 done
 }
 
+frontend() {
 
+local ESC=$'\e'
+local DELAY=0.5
+local EXITLOOP=''
+local FILE=${1}
+local MARGIN=5
 
-##########################################################################
-########################  TEST  ##########################################
-init
+# unset MESSAGE : If MESSAGE is already set, say by command line argument of Juff
+# why bother to enter following loop
+while [ -z "${MESSAGE}" ]; do
+    while [ -z "${EXITLOOP}" ]; do
+        local LINES=`tput lines`
+        local DROP=$((${LINES} - ${MARGIN}))
+        tput clear
+        timeout ${DELAY} tail -n ${DROP} ${FILE}
+        tput home ; echo 'Esc to go back, any key else to input text, share file or scroll back chat history'; tput el
+        tput home ; tput cud ${DROP} ; tput ed
+        echo ${PROMPT1}
+        read -srt ${DELAY} -n 1 EXITLOOP
+    done
+    [ ${EXITLOOP} == ${ESC} ] && return 1
+    unset EXITLOOP
+    tput clear
+    sed -n p ${FILE}
+    tput home ; tput cud ${DROP} ; tput ed
+    echo ${PROMPT2}$'\n'
+    read -erp 'Input: ' MESSAGE
+done
+return 0
 
-daemon &
-tput smcup && tput clear
+}   
 
-
-ui() {
-
-local CORRESPONDENT
-
-show() {
-
-clean(){
-tput cuu 5 ; tput ed
-}
-
-if [ -z "${CORRESPONDENT}" ]; then
-    local CHAT=${LATEST}
+backend() {
+if [ ${PAGE} == '1' ]; then
+    if [ -n ${MESSAGE} ]; then
+        CORRESPONDENT=${MESSAGE}
+        [ ! -d "${REPO}/.${CORRESPONDENT}" ] && return 1    #Set PROMPT1 for next display as 'can't find username'
+        PAGE='2'
+    else
+        quit 1
+    fi
 else
-    local CHAT=${INBOX}'/'${CORRESPONDENT}'.txt'
+    if [ -n ${MESSAGE} ]; then
+        MESSAGE=${MESSAGE}  #${MESSAGE} should be INPUT
+        PAGE='2'
+        post ${CORRESPONDENT} ${MESSAGE}
+    else
+        PAGE='1'
+    fi
 fi
-
-tput clear
-[ -e "${CHAT}"] && cat ${CHAT}
-clean 5
-tput cup 0,0
-if [ -z "$CORRESPONDENT" ]; then
-    read -p 'Chat with: ' CORRESPONDENT #TODO: Add timeout here
-else
-    echo 'Chat with : ${CORRESPONDENT}'
-fi
-}
-
-
-show
 }
