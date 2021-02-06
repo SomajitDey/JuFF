@@ -17,6 +17,7 @@ while [ -z "${MESSAGE}" ]; do
         local DROP=$((${LINES} - ${MARGIN}))
         tput clear
         timeout ${DELAY} tail -n ${DROP} ${FILE}
+        tput home ; echo 'Esc to go back, any key else to input text, share file or scroll back chat history'; tput el
         tput home ; tput cud ${DROP} ; tput ed
         echo ${PROMPT1}
         read -srt ${DELAY} -n 1 EXITLOOP
@@ -34,7 +35,7 @@ return 0
 }   
 
 #Below is a sample program to utilize frontend. Give a text file as argument.
-PROMPT1='Esc to go back, any key else to input text, share file or scroll back chat history'
+PROMPT1='tail -n 1 lastact.log push.log pull.log'
 PROMPT2='Input message or drag and drop file to send'
 frontend ${1}
 [ -z "${MESSAGE}" ] && exit 1
