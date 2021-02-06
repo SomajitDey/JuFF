@@ -10,76 +10,38 @@ declare -rg BOLD=`tput bold`
 declare -rg UNDERLINE=`tput smul`
 declare -rg BELL=`tput bel`
 
-declare -rg REMOTE=Use ssh for faster git push
+declare -rg REMOTE='https://github.com/SomajitDey/juff.git' #Use ssh instead of https for faster git push
 declare -rg BRANCH='main'
 declare -rg INBOX=${HOME}'/Inbox_Juff'
 declare -rg REPO=${INBOX}'/.git'
-declare -rg LATEST=${INBOX}'/latest.txt'
+declare -rg LATEST=${INBOX}'/.all.txt'
 declare -rg DOWNLOADS=${INBOX}'/Downloads'
 declare -rg LOGS=${INBOX}'/.logs'
-declare -rg PUSH_LOG=
-declare -rg PULL_LOG=
-declare -rg GET_LOG=
-declare -rg LASTACT_LOG=    #shows status of last action
+declare -rg PUSH_LOG=${LOGS}'/push.log'
+declare -rg PULL_LOG=${LOGS}'/pull.log'
+declare -rg GET_LOG=${LOGS}'/get.log'
+declare -rg LASTACT_LOG=${LOGS}'/lastaction.log'
 }
 
 timestamp() {
-  date +::%s
+  date +${YELLOW}${1}${GREEN}%c${NORMAL}
 }
 
 config() {
-SELF_NAME=
-SELF_EMAIL=
-# MOVE SELF to init()
-SELF=${NAME}'::'${EMAIL}
-GITBOX=${REPO}'/.'${SELF}
+declare -rg SELF_NAME='test'
+declare -rg SELF_EMAIL='test@email.com'
+declare -rg SELF=${SELF_NAME}'::'${SELF_EMAIL}
+declare -rg GITBOX=${REPO}'/.'${SELF}
 
-unset MESSAGE   #to be renamed INPUT
-unset MSG    #${2}, otherwise empty
-unset CORRESPONDENT    #${1}, otherwise empty
+declare -g CORRESPONDENT=${1}
+declare -g MESSAGE=${2}
+declare -g PAGE
+
 }
 
 push() {
     git add --all
     git diff --quiet HEAD || { git commit -qm 'by juff-daemon' && git push -q origin main }
-}
-
-quit() {
-    cd ${OLDPWD} ; tput cnorm ; tput sgr0 ; tput rmcup
-    pkill -SIGQUIT daemon
-    wait
-    exit ${1}
-}
-
-post() {
-
-card() {
-
-local BLOB=${POSTBOX}'/'${FROM}`timestamp`${2}
-echo -e ${1} > ${BLOB}
-}
-
-local FROM=${SELF}
-local TO=${1}
-local POSTBOX=${REPO}'/.'${TO}
-
-[ ! -d "${POSTBOX}" ] && return 1
-
-if [ -f "${2}" ]; then
-    local URL=`curl -sfF "file=@${2}" https://file.io/?expires=2 | grep -o "https://file.io/[A-Za-z0-9]*"`
-    [ -z "${URL}" ] && return 2
-    card "${URL} -o /tmp/${2##*/}" .dl
-    local TEXT=${FROM}' sent you '$'\t'${2##*/}
-else
-    local TEXT=${FROM}'>>'$'\t'${2}
-fi
-
-local URL=`curl -s --data "text=${TEXT}" https://file.io | grep -o "https://file.io/[A-Za-z0-9]*"`
-[ -z "${URL}" ] && return 3
-card ${URL} .txt
-local CHAT=${INBOX}'/'${TO}'.txt'
-echo -e ${TEXT} | tee -a ${LATEST} >> ${CHAT}
-
 }
 
 pull() {
@@ -116,17 +78,54 @@ while [ -z "${WRAPUP}" ] ; do
 done
 }
 
+quit() {
+    cd ${OLDPWD} ; tput cnorm ; tput sgr0 ; tput rmcup
+    kill -SIGQUIT ${COPROC_PID} >/dev/null 2>&1
+    wait
+    exit ${1}
+}
+
+post() {
+
+card() {
+
+local BLOB=${POSTBOX}'/'${FROM}'::'${EPOCHSECONDS}${2}
+echo -e ${1} > ${BLOB}
+}
+
+local FROM=${SELF}
+local TO=${1}
+local POSTBOX=${REPO}'/.'${TO}
+
+[ ! -d "${POSTBOX}" ] && return 1
+
+if [ -f "${2}" ]; then
+    local URL=`curl -sfF "file=@${2}" https://file.io/?expires=2 | grep -o "https://file.io/[A-Za-z0-9]*"`
+    [ -z "${URL}" ] && return 2
+    card "${URL} -o /tmp/${2##*/}" .dl
+    local TEXT=${FROM}' sent you '$'\t'${2##*/}
+else
+    local TEXT=${FROM}'>>'$'\t'${2}
+fi
+
+local URL=`curl -s --data "text=${TEXT}" https://file.io | grep -o "https://file.io/[A-Za-z0-9]*"`
+[ -z "${URL}" ] && return 3
+card ${URL} .txt
+local CHAT=${INBOX}'/'${TO}'.txt'
+echo -e ${TEXT} | tee -a ${LATEST} >> ${CHAT}
+
+}
+
 frontend() {
 
 local ESC=$'\e'
-local DELAY=0.5
-local EXITLOOP=''
+local DELAY='0.5'
+local EXITLOOP
 local FILE=${1}
-local MARGIN=5
+local MARGIN='5'
 
-# unset MESSAGE : If MESSAGE is already set, say by command line argument of Juff
-# why bother to enter following loop
-while [ -z "${MESSAGE}" ]; do
+unset INPUT
+while [ -z "${INPUT}" ]; do
     while [ -z "${EXITLOOP}" ]; do
         local LINES=`tput lines`
         local DROP=$((${LINES} - ${MARGIN}))
@@ -143,7 +142,7 @@ while [ -z "${MESSAGE}" ]; do
     sed -n p ${FILE}
     tput home ; tput cud ${DROP} ; tput ed
     echo ${PROMPT2}$'\n'
-    read -erp 'Input: ' MESSAGE
+    read -erp 'Input: ' INPUT
 done
 return 0
 
@@ -151,20 +150,62 @@ return 0
 
 backend() {
 if [ ${PAGE} == '1' ]; then
-    if [ -n ${MESSAGE} ]; then
-        CORRESPONDENT=${MESSAGE}
+    if [ -n ${INPUT} ]; then
+        CORRESPONDENT=${INPUT}
         [ ! -d "${REPO}/.${CORRESPONDENT}" ] && return 1    #Set PROMPT1 for next display as 'can't find username'
-        PAGE='2'
     else
-        quit 1
+        [ -z "$CORRESPONDENT" ] && quit 1
     fi
+    PAGE='2'
 else
-    if [ -n ${MESSAGE} ]; then
-        MESSAGE=${MESSAGE}  #${MESSAGE} should be INPUT
-        PAGE='2'
-        post ${CORRESPONDENT} ${MESSAGE}
+    if [ -n ${INPUT} ]; then
+        MESSAGE=${INPUT}
+        post ${CORRESPONDENT} ${MESSAGE} >>
+        unset MESSAGE
     else
-        PAGE='1'
+        if [ -n "$MESSAGE" ]; then
+            kill -SIGQUIT ${COPROC_PID} >/dev/null 2>&1
+            post ${CORRESPONDENT} ${MESSAGE}
+            wait
+            daemon
+            quit
+        else
+            PAGE='1'
+            unset CORRESPONDENT
+        fi
     fi
 fi
 }
+
+ui() {
+tput smcup
+local INPUT
+while [ -n "${PAGE}" ]; do
+    case ${PAGE} in
+    1)
+        [ -z "${CORRESPONDENT}" ] && frontend
+        backend
+        ;;
+    2)
+        [ -z "${MESSAGE}" ] && frontend
+        backend
+        ;;
+    esac
+done
+
+}
+
+#Main
+
+readonly_globals
+config "${1}" "${2}"
+cd ${REPO}
+if [ -n "${MESSAGE}" ]; then
+    post "{$CORRESPONDENT}" "${MESSAGE}"
+elif [ ${CORRESPONDENT} != 'daemon' ]; then
+    coproc daemon
+    ui
+    quit
+fi
+daemon
+exit
