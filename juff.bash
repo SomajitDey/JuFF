@@ -3,18 +3,15 @@
 #Withing repo every dir should be hidden and file with dir names must be present: 
 #This is for autocomplete with :: read -ep
 
-ESC=$'\e'
-CSI=${ESC}'['
-BIT='9'    #If 16-bit color is supported; BIT=3 otherwise
-RED=${CSI}${BIT}'1m'    #or equivalently, RED=`tput setaf 1`
-GREEN=${CSI}${BIT}'2m'
-YELLOW=${CSI}${BIT}'3m'
-BLUE=${CSI}${BIT}'4m'
-MAGENTA=${CSI}${BIT}'5m'
-CYAN=${CSI}${BIT}'6m'
-NORMAL=${CSI}'0m'    #or equivalently, NORMAL=`tput sgr0`
-BOLD=${CSI}'1m'    #or equivalently, BOLD=`tput bold`
-UNDERLINE=${CSI}'4m'    #or equivalently, `UNDERLINE=tput smul`
+RED=`tput setaf 1`
+GREEN=`tput setaf 2`
+YELLOW=`tput setaf 3`
+BLUE=`tput setaf 4`
+MAGENTA=`tput setaf 5`
+CYAN=`tput setaf 6`
+NORMAL=`tput sgr0`
+BOLD=`tput bold`
+UNDERLINE=`tput smul`
 
 
 REMOTE=Use ssh for faster git push
