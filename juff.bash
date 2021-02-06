@@ -1,4 +1,7 @@
 #Double quotes "${SENTENCE}" for sentence as a single text. Use when passing parameter to functions
+#Use coproc for daemon, coproc_PID, coproc[0], coproc[1] see man bash
+
+
 #TODO: Inbox will hold repo and local copies of chats as hidden files and dir.
 #Withing repo every dir should be hidden and file with dir names must be present: 
 #This is for autocomplete with :: read -ep
@@ -71,7 +74,7 @@ local POSTBOX=${REPO}'/.'${TO}
 if [ -f "${2}" ]; then
     local URL=`curl -sfF "file=@${2}" https://file.io/?expires=2 | grep -o "https://file.io/[A-Za-z0-9]*"`
     [ -z "${URL}" ] && return 2
-    card '${URL} -o /tmp/${2##*/}' .dl
+    card "${URL} -o /tmp/${2##*/}" .dl
     local TEXT=${FROM}' sent you '$'\t'${2##*/}
 else
     local TEXT=${FROM}'>>'$'\t'${2}
@@ -98,7 +101,7 @@ for FILE in ${GITBOX}/*${EXT}; do
         ;;
     .dl)
         local DOWNLOADED=`xargs curl -sfw %{filename_effective}'\n' < ${FILE}`
-        local DIR='${DOWNLOADS}/${FROM}/'
+        local DIR="${DOWNLOADS}/${FROM}/"
         [ ! -d "${DIR}"] mkdir ${DIR}
         [ -e "${DOWNLOADED}"] mv --backup=numbered ${DOWNLOADED} ${DIR}
     esac
