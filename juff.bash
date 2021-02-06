@@ -1,3 +1,4 @@
+#Double quotes "${SENTENCE}" for sentence as a single text. Use when passing parameter to functions
 #TODO: Inbox will hold repo and local copies of chats as hidden files and dir.
 #Withing repo every dir should be hidden and file with dir names must be present: 
 #This is for autocomplete with :: read -ep
