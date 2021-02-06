@@ -9,7 +9,8 @@ local EXITLOOP=''
 local FILE=${1}
 local MARGIN=5
 
-unset MESSAGE
+# unset MESSAGE : If MESSAGE is already set, say by command line argument of Juff
+# why bother to enter following loop
 while [ -z "${MESSAGE}" ]; do
     while [ -z "${EXITLOOP}" ]; do
         local LINES=`tput lines`
