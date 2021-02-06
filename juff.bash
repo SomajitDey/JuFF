@@ -30,7 +30,7 @@ echo `tput setab 7`$'\n'"${1}"$'\n'`tput sgr0``tput ed`
 }
 
 timestamp() {
-  date +${GREEN}%c' '${1}${NORMAL}
+  date +${GREEN}%c" ${1}${NORMAL}"
 }
 
 config() {
@@ -45,23 +45,25 @@ echo >> ${PUSH_LOG}
 echo >> ${NOTIFICATION}
 echo >> ${DELIVERY}
 echo >> ${LASTACT_LOG}
+if [ ! -d "${INBOX}" ]; then
 mkdir -p ${INBOX}
 mkdir -p ${DOWNLOADS}
 mkdir -p ${LOGS}
-mkdir -p ${REPO}
+git clone "${REMOTE}" "${REPO}" || exit
 mkdir -p ${GITBOX}
+fi
 
 cd ${REPO}
 }
 
 push() {
-    git add --all
+    git add --all > /dev/null 2>&1
     git diff --quiet HEAD || { git commit -qm 'by juff-daemon' && git push -q origin main ; }
     if [ ${?} == '0' ]; then
-        timestamp ${GREEN}'Push successful'
+        timestamp "${GREEN}Push successful"
         echo 'Delivered!' > ${DELIVERY}
     else
-        timestamp ${RED}'Push failed'
+        timestamp "${RED}Push failed"
     fi
 } >> ${PUSH_LOG}
 
