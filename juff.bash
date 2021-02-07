@@ -66,8 +66,9 @@ declare -g SELF_EMAIL=`git config --local user.email`
 
 declare -rg SELF=${SELF_NAME}'#'${SELF_EMAIL}
 declare -rg GITBOX=${REPO}'/.'${SELF}
-mkdir -p ${GITBOX}
-
+mkdir -p "${GITBOX}" && echo "Created $GITBOX"
+declare -rg ANCHOR=${GITBOX}'/anchor'
+[ ! -e "${ANCHOR}" ] && echo "Created $ANCHOR" && echo 'This is just so that this directory is never empty' > ${ANCHOR} && read
 }
 
 push() {
@@ -157,6 +158,7 @@ local POSTBOX=${REPO}'/.'${TO}
 local TEXT
 
 [ ! -d "${POSTBOX}" ] && echo ${RED}'ERROR: Recipient could not be found. Sending failed.' && return 1
+echo 'Posting...'
 
 if [ -f "${2}" ]; then
     local URL=`curl -sfF "file=@${2}" https://file.io/?expires=2 | grep -o "https://file.io/[A-Za-z0-9]*"`
@@ -201,7 +203,7 @@ while [ -z "${INPUT}" ]; do
         tail -n 1 ${DELIVERY}
         tail -n 1 ${LASTACT_LOG}
         echo "${2}"
-        echo "Input: Press any alphanumeric key to input text"
+        echo -n "Input: Press any alphanumeric key to input text"
         read -srt ${DELAY} -n 1 EXITLOOP
     done
     [ ${EXITLOOP} == ${ESC} ] && return 1
@@ -222,30 +224,23 @@ return 0
 
 backend() {
 if [ ${PAGE} == '1' ]; then
-    if [ -n ${INPUT} ]; then
-        CORRESPONDENT=${INPUT}
+    if [ -n "${INPUT}" ]; then
+        CORRESPONDENT="${INPUT}"
         [ ! -d "${REPO}/.${CORRESPONDENT}" ] && echo ${RED}'Recipient could not be found.' && return 1
-        echo
     else
-        [ -z "$CORRESPONDENT" ] && quit 1
+        [ -z "${CORRESPONDENT}" ] && unset PAGE && echo 'Quitting' && return 1
     fi
     PAGE='2'
+    echo "Chatting with ${CORRESPONDENT}" >> ${LASTACT_LOG}
 else
-    if [ -n ${INPUT} ]; then
-        MESSAGE=${INPUT}
-        post ${CORRESPONDENT} ${MESSAGE} >> ${DELIVERY}
+    if [ -n "${INPUT}" ]; then
+        MESSAGE="${INPUT}"
+        post ${CORRESPONDENT} ${MESSAGE} >> ${DELIVERY} &
         unset MESSAGE
     else
-        if [ -n "$MESSAGE" ]; then
-            kill -SIGQUIT ${COPROC_PID} >/dev/null 2>&1
-            post ${CORRESPONDENT} ${MESSAGE}
-            wait
-            daemon 1
-            quit
-        else
-            PAGE='1'
-            unset CORRESPONDENT
-        fi
+        PAGE='1'
+        unset CORRESPONDENT
+        echo "Back from chatting with ${CORRESPONDENT}" >> ${LASTACT_LOG}
     fi
 fi
 } >> ${LASTACT_LOG}
