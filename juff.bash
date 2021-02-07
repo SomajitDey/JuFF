@@ -13,7 +13,7 @@ declare -rg UNDERLINE=`tput smul`
 declare -rg BELL=`tput bel`
 
 declare -rg REMOTE='https://github.com/SomajitDey/juff.git' #Use ssh instead of https for faster git push
-declare -rg BRANCH='main'
+declare -rg BRANCH='test'
 declare -rg INBOX=${HOME}'/Inbox_Juff'
 declare -rg REPO=${INBOX}'/.git'
 declare -rg LATEST=${INBOX}'/.all.txt'
@@ -34,10 +34,6 @@ timestamp() {
 }
 
 config() {
-declare -rg SELF_NAME='test'
-declare -rg SELF_EMAIL='test@email.com'
-declare -rg SELF=${SELF_NAME}'::'${SELF_EMAIL}
-declare -rg GITBOX=${REPO}'/.'${SELF}
 
 declare -g PAGE='1'
 
@@ -45,15 +41,33 @@ echo >> ${PUSH_LOG}
 echo >> ${NOTIFICATION}
 echo >> ${DELIVERY}
 echo >> ${LASTACT_LOG}
-if [ ! -d "${INBOX}" ]; then
-mkdir -p ${INBOX}
-mkdir -p ${DOWNLOADS}
-mkdir -p ${LOGS}
-git clone "${REMOTE}" "${REPO}" || exit
-mkdir -p ${GITBOX}
+
+if [ ! -d "${REPO}/.git" ]; then
+    mkdir -p ${INBOX}
+    mkdir -p ${DOWNLOADS}
+    mkdir -p ${LOGS}
+    git clone "${REMOTE}" "${REPO}" || exit
+    cd ${REPO}
+    read -p 'Enter your name without any spaces [you may use _ and .]: ' RESPONSE
+    set -- ${RESPONSE}
+    git config --local user.name ${1}
+    read -p 'Enter your existing emailid: ' RESPONSE
+    set -- ${RESPONSE}
+    git config --local user.email ${1}
+    SELF_EMAIL=${1}
+    git config credential.helper store
+    echo what about the PAT? && exit
 fi
 
-cd ${REPO}
+[ ${PWD} != ${REPO} ] && cd ${REPO}
+
+declare -g SELF_NAME=`git config --local user.name`
+declare -g SELF_EMAIL=`git config --local user.email`
+
+declare -rg SELF=${SELF_NAME}'#'${SELF_EMAIL}
+declare -rg GITBOX=${REPO}'/.'${SELF}
+mkdir -p ${GITBOX}
+
 }
 
 push() {
@@ -75,7 +89,7 @@ if ! ls ${GITBOX}/*${EXT} >/dev/null 2>&1 ; then echo && return 2 ; fi
 for FILE in ${GITBOX}/*${EXT}; do
     case ${EXT} in
     .txt)
-        local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*[:]*[a-z0-9._]*[@][a-z0-9._]*`
+        local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
         local CHAT=${INBOX}'/'${FROM}'.txt'
         xargs curl -sfw '\n' < ${FILE} | tee -a ${LATEST} >> ${CHAT}
         if [ ${?} == '0' ]; then
@@ -131,7 +145,7 @@ post() {
 
 card() {
 
-local BLOB=${POSTBOX}'/'${FROM}'::'${EPOCHSECONDS}${2}
+local BLOB=${POSTBOX}'/'${FROM}'#'${EPOCHSECONDS}${2}
 echo -e ${1} > ${BLOB}
 }
 
@@ -239,11 +253,11 @@ local INPUT
 while [ -n "${PAGE}" ]; do
     case ${PAGE} in
     1)
-        [ -z "${CORRESPONDENT}" ] && frontend
+        [ -z "${CORRESPONDENT}" ] && frontend 'Who do you wanna chat with?'
         backend
         ;;
     2)
-        [ -z "${MESSAGE}" ] && frontend
+        [ -z "${MESSAGE}" ] && frontend 'Enter message or drag and drop files to send'
         backend
         ;;
     esac
