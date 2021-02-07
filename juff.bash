@@ -124,7 +124,7 @@ daemon() {
 handler() {
 ITERATION=$((${COUNT} + 1))
 }
-trap handler QUIT
+trap handler QUIT TERM INT HUP
 local ITERATION
 local COUNT='0'
 if [ -n "${1}" ]; then
@@ -137,14 +137,13 @@ until [ ${COUNT} == ${ITERATION} ] ; do
     push
     ((COUNT++))
 done
+echo "Everything synced gracefully"
 return
 }
 
 quit() {
+    [ -n "${DPID}" ] && kill ${DPID} >/dev/null 2>&1
     cd ${OLDPWD} ; tput cnorm ; tput sgr0 ; tput rmcup
-    kill -SIGQUIT ${COPROC_PID} >/dev/null 2>&1
-    pkill -SIGQUIT daemon >/dev/null 2>&1
-    wait
     exit ${1}
 }
 
@@ -239,7 +238,7 @@ if [ ${PAGE} == '1' ]; then
 else
     if [ -n "${INPUT}" ]; then
         MESSAGE="${INPUT}"
-        post ${CORRESPONDENT} ${MESSAGE} >> ${DELIVERY} &
+        post "${CORRESPONDENT}" "${MESSAGE}" >> "${DELIVERY}" &
         unset MESSAGE
     else
         PAGE='1'
@@ -276,9 +275,12 @@ MESSAGE=${2}
 if [ -n "${MESSAGE}" ]; then
     post "${CORRESPONDENT}" "${MESSAGE}"
 elif [ "${1}" == 'daemon' ]; then
-    daemon ; exit
+    daemon & 
+    echo ${!}
+    exit
 elif [ "${1}" != 'sync' ]; then
     daemon &
+    DPID=${!}
     ui
     quit
 fi
