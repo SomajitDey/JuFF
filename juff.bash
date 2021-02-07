@@ -270,7 +270,7 @@ config
 CORRESPONDENT=${1}
 MESSAGE=${2}
 if [ -n "${MESSAGE}" ]; then
-    post "{$CORRESPONDENT}" "${MESSAGE}"
+    post "${CORRESPONDENT}" "${MESSAGE}"
 elif [ "${1}" == 'daemon' ]; then
     daemon ; exit
 elif [ "${1}" != 'sync' ]; then
@@ -279,4 +279,5 @@ elif [ "${1}" != 'sync' ]; then
     quit
 fi
 daemon 1
+tail -n 1 "${DELIVERY}"
 exit
