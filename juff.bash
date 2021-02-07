@@ -72,7 +72,7 @@ mkdir -p ${GITBOX}
 
 push() {
     git add --all > /dev/null 2>&1
-    git diff --quiet HEAD || { git commit -qm 'by juff-daemon' && git push -q origin main ; }
+    git diff --quiet HEAD || { git commit -qm 'by juff-daemon' && git push -q origin main ; } > /dev/null 2>&1
     if [ ${?} == '0' ]; then
         timestamp "${GREEN}Push successful"
         echo 'Delivered!' > ${DELIVERY}
@@ -82,7 +82,7 @@ push() {
 } >> ${PUSH_LOG}
 
 pull() {
-git pull -q origin main
+git pull -q origin main > /dev/null 2>&1
 [ ${?} != 0 ] && timestamp "${RED}Pull failed" && return 1
 local EXT=${1}
 if ! ls ${GITBOX}/*${EXT} >/dev/null 2>&1 ; then echo && return 2 ; fi
@@ -132,6 +132,7 @@ until [ ${COUNT} == ${ITERATION} ] ; do
     push
     ((COUNT++))
 done
+exit
 }
 
 quit() {
@@ -184,6 +185,7 @@ local EXITLOOP
 local FILE=${1}
 local MARGIN='8'
 
+[ ! -e "${FILE}" ] && echo > ${FILE}
 unset INPUT
 while [ -z "${INPUT}" ]; do
     while [ -z "${EXITLOOP}" ]; do
@@ -197,7 +199,7 @@ while [ -z "${INPUT}" ]; do
         tail -n 1 ${NOTIFICATION}
         tail -n 1 ${DELIVERY}
         tail -n 1 ${LASTACT_LOG}
-        echo "${1}"
+        echo "${2}"
         echo "Input: Press any alphanumeric key to input text"
         read -srt ${DELAY} -n 1 EXITLOOP
     done
@@ -210,7 +212,7 @@ while [ -z "${INPUT}" ]; do
         tail -n 1 ${NOTIFICATION}
         tail -n 1 ${DELIVERY}
         tail -n 1 ${LASTACT_LOG}
-    echo ${1}
+    echo "${2}"
     read -erp 'Input: ' INPUT
 done
 return 0
@@ -253,11 +255,11 @@ local INPUT
 while [ -n "${PAGE}" ]; do
     case ${PAGE} in
     1)
-        [ -z "${CORRESPONDENT}" ] && frontend 'Who do you wanna chat with?'
+        [ -z "${CORRESPONDENT}" ] && frontend ${LATEST} 'Who do you wanna chat with?'
         backend
         ;;
     2)
-        [ -z "${MESSAGE}" ] && frontend 'Enter message or drag and drop files to send'
+        [ -z "${MESSAGE}" ] && frontend "${INBOX}/${TO}.txt" 'Enter message or drag and drop files to send'
         backend
         ;;
     esac
