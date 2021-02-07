@@ -86,17 +86,18 @@ pull() {
 git tag last > /dev/null 2>&1
 git pull -q origin main > /dev/null 2>&1
 [ ${?} != 0 ] && timestamp "${RED}Pull failed" && return 1
+}
 
 get() {
 local EXT="${1}"
 for FILE in `git diff --name-only HEAD last -- "${GITBOX}/*${EXT}"`; do
     case ${EXT} in
     .txt)
-        local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
+        local FROM=`echo ${FILE##*/} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
         local CHAT=${INBOX}'/'${FROM}'.txt'
         xargs curl -sfw '\n' < ${FILE} | tee -a ${LATEST} >> ${CHAT}
         if [ ${?} == '0' ]; then
-            whiteline "${BLUE}------${MAGENTA}from ${BOLD}${RED}${FROM}${NORMAL}${\n}" >> ${LATEST}
+            whiteline "${BLUE}------${MAGENTA}from ${BOLD}${RED}${FROM}${NORMAL}"$'\n' >> ${LATEST}
             timestamp ${BLUE}'Text received from '${RED}${FROM}
         else
             timestamp "${RED}Download failed"
@@ -117,11 +118,6 @@ for FILE in `git diff --name-only HEAD last -- "${GITBOX}/*${EXT}"`; do
 done
 } >> ${NOTIFICATION}
 
-get '.txt'
-get '.dl'
-git tag -d last > /dev/null 2>&1
-}
-
 daemon() {
 handler() {
 ITERATION=$((${COUNT} + 1))
@@ -137,6 +133,8 @@ fi
 until [ ${COUNT} == ${ITERATION} ] ; do
     pull
     push
+    get '.txt' ; get '.dl'
+    git tag -d last > /dev/null 2>&1
     ((COUNT++))
 done
 echo "Everything synced gracefully"
@@ -144,8 +142,9 @@ return
 }
 
 quit() {
-    [ -n "${DPID}" ] && kill ${DPID} >/dev/null 2>&1
+    [ -n "${dPID}" ] && kill ${dPID} >/dev/null 2>&1
     cd ${OLDPWD} ; tput cnorm ; tput sgr0 ; tput rmcup
+    wait ${postPID[@]}
     exit ${1}
 }
 
@@ -241,7 +240,8 @@ else
     if [ -n "${INPUT}" ]; then
         MESSAGE="${INPUT}"
         post "${CORRESPONDENT}" "${MESSAGE}" >> "${DELIVERY}" &
-        unset MESSAGE
+        declare -g postPID+=(${!})
+        unset MESSAGE ; unset INPUT
     else
         PAGE='1'
         unset CORRESPONDENT
@@ -260,7 +260,7 @@ while [ -n "${PAGE}" ]; do
         backend
         ;;
     2)
-        [ -z "${MESSAGE}" ] && frontend "${INBOX}/${TO}.txt" 'Enter message or drag and drop files to send'
+        [ -z "${MESSAGE}" ] && frontend "${INBOX}/${CORRESPONDENT}.txt" 'Enter message or drag and drop files to send'
         backend
         ;;
     esac
@@ -282,7 +282,7 @@ elif [ "${1}" == 'daemon' ]; then
     exit
 elif [ "${1}" != 'sync' ]; then
     daemon &
-    DPID=${!}
+    dPID=${!}
     ui
     quit
 fi
