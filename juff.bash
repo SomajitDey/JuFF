@@ -132,12 +132,13 @@ until [ ${COUNT} == ${ITERATION} ] ; do
     push
     ((COUNT++))
 done
-exit
+return
 }
 
 quit() {
     cd ${OLDPWD} ; tput cnorm ; tput sgr0 ; tput rmcup
     kill -SIGQUIT ${COPROC_PID} >/dev/null 2>&1
+    pkill -SIGQUIT daemon >/dev/null 2>&1
     wait
     exit ${1}
 }
@@ -278,7 +279,7 @@ if [ -n "${MESSAGE}" ]; then
 elif [ "${1}" == 'daemon' ]; then
     daemon ; exit
 elif [ "${1}" != 'sync' ]; then
-    coproc daemon
+    daemon &
     ui
     quit
 fi
