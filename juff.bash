@@ -85,9 +85,10 @@ push() {
 pull() {
 git pull -q origin main > /dev/null 2>&1
 [ ${?} != 0 ] && timestamp "${RED}Pull failed" && return 1
-local EXT=${1}
-if ! ls ${GITBOX}/*${EXT} >/dev/null 2>&1 ; then echo && return 2 ; fi
-for FILE in ${GITBOX}/*${EXT}; do
+
+get() {
+local EXT="${1}"
+for FILE in `git diff --name-only -- "${GITBOX}/*${EXT}"`; do
     case ${EXT} in
     .txt)
         local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
@@ -112,9 +113,12 @@ for FILE in ${GITBOX}/*${EXT}; do
         fi
         ;;
     esac
-    git rm -q ${FILE}
 done
 } >> ${NOTIFICATION}
+
+get '.txt'
+get '.dl'
+}
 
 daemon() {
 handler() {
