@@ -66,9 +66,9 @@ declare -g SELF_EMAIL=`git config --local user.email`
 
 declare -rg SELF=${SELF_NAME}'#'${SELF_EMAIL}
 declare -rg GITBOX=${REPO}'/.'${SELF}
-mkdir -p "${GITBOX}" && echo "Created $GITBOX"
+mkdir -p "${GITBOX}"
 declare -rg ANCHOR=${GITBOX}'/anchor'
-[ ! -e "${ANCHOR}" ] && echo "Created $ANCHOR" && echo 'This is just so that this directory is never empty' > ${ANCHOR} && read
+[ ! -e "${ANCHOR}" ] && echo 'This is just so that this directory is never empty' > ${ANCHOR}
 }
 
 push() {
@@ -138,7 +138,7 @@ until [ ${COUNT} == ${ITERATION} ] ; do
     ((COUNT++))
 done
 echo "Everything synced gracefully"
-return
+exit
 }
 
 quit() {
@@ -187,7 +187,7 @@ echo 'Message posted for delivery. To be delivered on next push.'
 frontend() {
 
 local ESC=$'\e'
-local DELAY='0.5'
+local DELAY='1'
 local EXITLOOP
 local FILE=${1}
 local MARGIN='8'
@@ -255,7 +255,7 @@ fi
 } >> ${LASTACT_LOG}
 
 ui() {
-tput smcup
+tput smcup ; tput civis
 local INPUT
 while [ -n "${PAGE}" ]; do
     case ${PAGE} in
