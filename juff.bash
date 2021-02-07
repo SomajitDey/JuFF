@@ -83,12 +83,13 @@ push() {
 } >> ${PUSH_LOG}
 
 pull() {
+git tag last > /dev/null 2>&1
 git pull -q origin main > /dev/null 2>&1
 [ ${?} != 0 ] && timestamp "${RED}Pull failed" && return 1
 
 get() {
 local EXT="${1}"
-for FILE in `git diff --name-only -- "${GITBOX}/*${EXT}"`; do
+for FILE in `git diff --name-only HEAD last -- "${GITBOX}/*${EXT}"`; do
     case ${EXT} in
     .txt)
         local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
@@ -118,6 +119,7 @@ done
 
 get '.txt'
 get '.dl'
+git tag -d last > /dev/null 2>&1
 }
 
 daemon() {
