@@ -85,8 +85,8 @@ push() {
 pull() {
 git tag last > /dev/null 2>&1
 git pull -q origin main > /dev/null 2>&1
-[ ${?} != 0 ] && timestamp "${RED}Pull failed" && return 1
-}
+[ ${?} != 0 ] && timestamp "${RED}Pull failed. Check internet connectivity" && return 1
+} >> ${NOTIFICATION}
 
 get() {
 local EXT="${1}"
@@ -230,7 +230,11 @@ backend() {
 if [ ${PAGE} == '1' ]; then
     if [ -n "${INPUT}" ]; then
         CORRESPONDENT="${INPUT}"
-        [ ! -d "${REPO}/.${CORRESPONDENT}" ] && echo ${RED}'Recipient could not be found.' && return 1
+        if [ ! -d "${REPO}/.${CORRESPONDENT}" ]; then
+            echo ${RED}'Recipient could not be found.'
+            unset CORRESPONDENT
+            return 1
+        fi
     else
         [ -z "${CORRESPONDENT}" ] && unset PAGE && echo 'Quitting' && return 1
     fi
