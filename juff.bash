@@ -72,14 +72,16 @@ declare -rg ANCHOR=${GITBOX}'/anchor'
 }
 
 push() {
-    git add --all > /dev/null 2>&1
-    { git diff --quiet HEAD || git commit -qm 'by juff-daemon' ;} > /dev/null 2>&1
-    git push -q origin "${BRANCH}" > /dev/null 2>&1
-    if [ ${?} == '0' ]; then
-        timestamp "${GREEN}Push successful"
-        echo 'Delivered!' > ${DELIVERY}
-    else
-        timestamp "${RED}Push failed"
+    if git diff --quiet HEAD; then
+        git add --all > /dev/null 2>&1
+        git commit -qm 'by juff-daemon' > /dev/null 2>&1
+        git push -q origin "${BRANCH}" > /dev/null 2>&1
+        if [ ${?} == '0' ]; then
+            timestamp "${GREEN}Push successful"
+            [ -n "$SHOWDELIVERY" ] && echo 'Delivered!' > ${DELIVERY}
+        else
+            timestamp "${RED}Push failed"
+        fi
     fi
 } >> ${PUSH_LOG}
 
