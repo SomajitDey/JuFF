@@ -74,11 +74,10 @@ declare -rg ANCHOR=${GITBOX}'/anchor'
 push() {
     if git diff --quiet HEAD; then
         git add --all > /dev/null 2>&1
-        git commit -qm 'by juff-daemon' > /dev/null 2>&1
-        git push -q origin "${BRANCH}" > /dev/null 2>&1
+        { git commit -qm 'by juff-daemon' && git push -q origin "${BRANCH}" ;} > /dev/null 2>&1
         if [ ${?} == '0' ]; then
             timestamp "${GREEN}Push successful"
-            [ -n "$SHOWDELIVERY" ] && echo 'Delivered!' > ${DELIVERY}
+            echo 'Delivered!' > "${DELIVERY}"
         else
             timestamp "${RED}Push failed"
         fi
