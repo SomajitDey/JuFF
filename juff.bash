@@ -185,42 +185,65 @@ echo 'Message posted for delivery. To be delivered on next push.'
 }
 
 frontend() {
-
-local ESC=$'\e'
-local DELAY='1'
-local EXITLOOP
-local FILE=${1}
-local MARGIN='8'
-
-[ ! -e "${FILE}" ] && echo > ${FILE}
-unset INPUT
-while [ -z "${INPUT}" ]; do
-    while [ -z "${EXITLOOP}" ]; do
-        local LINES=`tput lines`
-        local DROP=$((${LINES} - ${MARGIN}))
-        tput clear
-        tail -n ${DROP} ${FILE}
-        tput home ; echo 'Press Esc to go back, or scroll for chat history'; tput el
+display() {
+        tput home
+        if [ -z "${EXITLOOP}" ]; then
+            echo -n 'Nav mode ON: Esc = quit or go back ; UP, DOWN, LEFT, RIGHT for navigation'
+        else
+            echo -n 'Input mode ON: Press Enter to switch to Nav mode'
+        fi
+        tput el; tput cud1 && tput el
         tput home ; tput cud ${DROP} ; tput ed
         tail -n 1 ${PUSH_LOG}
         tail -n 1 ${NOTIFICATION}
         tail -n 1 ${DELIVERY}
         tail -n 1 ${LASTACT_LOG}
-        echo "${2}"
-        echo -n "Input: Press any alphanumeric key to input text"
-        read -srt ${DELAY} -n 1 EXITLOOP
+        echo "${PROMPT}"
+}
+
+local ESC=$'\e'
+local CSI=${ESC}'['
+local UP=${CSI}'A'
+local DOWN=${CSI}'B'
+local RIGHT=${CSI}'C'
+local LEFT=${CSI}'D'
+
+local DELAY='1' #This is the refresh time period (to display new message)
+local EXITLOOP ; local TRAILING
+local FILE=${1}
+local PROMPT="${2}"
+local MARGIN='8'
+local SCROLL='2'
+local SHOWINGTILL
+
+[ ! -e "${FILE}" ] && echo > ${FILE}
+declare -g PREVINPUT="${INPUT}"
+unset INPUT
+while [ -z "${INPUT}" ]; do
+    while [ -z "${EXITLOOP}" ]; do
+        local WINDOW=$(set -- $(wc -l ${FILE}) && echo $1)
+        [ -z "${SHOWINGTILL}" ] && SHOWINGTILL=${WINDOW}
+        local DROP=$(($(tput lines) - ${MARGIN}))
+        tput clear
+        awk "NR==$((${SHOWINGTILL}-${DROP})),NR==${SHOWINGTILL}" "${FILE}"
+        display
+        echo -n "Input: Press any alphanumeric key..."
+        read -srt ${DELAY} -n 1 EXITLOOP && read -srt0.001 TRAILING
     done
-    [ ${EXITLOOP} == ${ESC} ] && return 1
-    unset EXITLOOP
-    tput clear
-    sed -n p ${FILE}
-    tput home ; tput cud ${DROP} ; tput ed
-        tail -n 1 ${PUSH_LOG}
-        tail -n 1 ${NOTIFICATION}
-        tail -n 1 ${DELIVERY}
-        tail -n 1 ${LASTACT_LOG}
-    echo "${2}"
+    if [ ${EXITLOOP} == ${ESC} ]; then 
+        case ${EXITLOOP}${TRAILING} in
+            ${UP} ) SHOWINGTILL=$((${SHOWINGTILL} - ${SCROLL})) ;;
+            ${DOWN} ) (( ${SHOWINGTILL} + ${SCROLL} <= ${WINDOW} )) && SHOWINGTILL=${SHOWINGTILL}+${SCROLL} ;;
+            ${Right} ) [ -n "${PREVINPUT}" ] && INPUT="${PREVINPUT}" && return 0 ;;
+            ${LEFT} | * ) return 1 ;;
+        esac
+    else
+#    tput clear
+#    sed -n p ${FILE}
+    display
     read -erp 'Input: ' INPUT
+    fi
+    unset EXITLOOP
 done
 return 0
 
