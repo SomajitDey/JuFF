@@ -73,7 +73,8 @@ declare -rg ANCHOR=${GITBOX}'/anchor'
 
 push() {
     git add --all > /dev/null 2>&1
-    git diff --quiet HEAD || { git commit -qm 'by juff-daemon' && git push -q origin main ; } > /dev/null 2>&1
+    { git diff --quiet HEAD || git commit -qm 'by juff-daemon' ;} > /dev/null 2>&1
+    git push -q origin "${BRANCH}" > /dev/null 2>&1
     if [ ${?} == '0' ]; then
         timestamp "${GREEN}Push successful"
         echo 'Delivered!' > ${DELIVERY}
@@ -84,16 +85,16 @@ push() {
 
 pull() {
 git tag last > /dev/null 2>&1
-git pull -q origin main > /dev/null 2>&1
+git pull -q origin "${BRANCH}" > /dev/null 2>&1
 [ ${?} != 0 ] && timestamp "${RED}Pull failed. Check internet connectivity" && return 1
 } >> ${NOTIFICATION}
 
 get() {
 local EXT="${1}"
 for FILE in `git diff --name-only HEAD last -- "${GITBOX}/*${EXT}"`; do
+    local FROM=`echo ${FILE##*/} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
     case ${EXT} in
     .txt)
-        local FROM=`echo ${FILE##*/} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
         local CHAT=${INBOX}'/'${FROM}'.txt'
         xargs curl -sfw '\n' < ${FILE} | tee -a ${LATEST} >> ${CHAT}
         if [ ${?} == '0' ]; then
@@ -106,10 +107,10 @@ for FILE in `git diff --name-only HEAD last -- "${GITBOX}/*${EXT}"`; do
     .dl)
         local DOWNLOADED=`xargs curl -sfw %{filename_effective}'\n' < ${FILE}`
         local DIR="${DOWNLOADS}/${FROM}/"
-        [ ! -d "${DIR}"] mkdir ${DIR}
-        [ -e "${DOWNLOADED}"] && mv --backup=numbered ${DOWNLOADED} ${DIR}
+        mkdir -p "${DIR}"
+        [ -e "${DOWNLOADED}" ] && mv --backup=numbered "${DOWNLOADED}" "${DIR}"
         if [ ${?} == 0 ]; then 
-            timestamp ${BLUE}'File received from '${RED}${FROM}
+            timestamp "${BLUE}File received from ${RED}${FROM}"
         else
             timestamp "${RED}Download failed"
         fi
@@ -170,7 +171,7 @@ if [ -f "${2}" ]; then
         echo ${RED}"ERROR: File upload failed. Check internet connectivity."
         return 2
     fi
-    card "${URL} -o /tmp/${2##*/}" .dl
+    card "${URL} -o /tmp/${2##*/}" ".dl"
     TEXT=${RED}${FROM}${CYAN}$'\n'' sent you '$'\t'${2##*/}${NORMAL}
 else
     TEXT=${CYAN}${2}${NORMAL}$'\n'
