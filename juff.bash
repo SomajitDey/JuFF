@@ -23,6 +23,7 @@ declare -rg PUSH_LOG=${LOGS}'/push.log'
 declare -rg LASTACT_LOG=${LOGS}'/lastaction.log'
 declare -rg NOTIFICATION=${LOGS}'/notification.log'
 declare -rg DELIVERY=${LOGS}'/delivery.log'
+declare -rg DLQUEUE=${INBOX}'/.dlqueue'
 }
 
 whiteline() {
@@ -46,6 +47,7 @@ if [ ! -d "${REPO}/.git" ]; then
     mkdir -p ${INBOX}
     mkdir -p ${DOWNLOADS}
     mkdir -p ${LOGS}
+    mkdir -p ${DLQUEUE}
     git clone "${REMOTE}" "${REPO}" || exit
     cd ${REPO}
     read -p 'Enter your name without any spaces [you may use _ and .]: ' RESPONSE
@@ -72,16 +74,20 @@ declare -rg ANCHOR=${GITBOX}'/anchor'
 }
 
 push() {
-    if git diff --quiet HEAD; then
-        git add --all > /dev/null 2>&1
+    git add --all > /dev/null 2>&1
+    if ! git diff --quiet HEAD; then
         { git commit -qm 'by juff-daemon' && git push -q origin "${BRANCH}" ;} > /dev/null 2>&1
         if [ ${?} == '0' ]; then
             timestamp "${GREEN}Push successful"
-            echo 'Delivered!' > "${DELIVERY}"
+            echo ${YELLOW}'Delivered!'${NORMAL} > "${DELIVERY}"
         else
             timestamp "${RED}Push failed"
         fi
+    else
+        echo ${MAGENTA}'git is synced'${NORMAL}
     fi
+    ln -t ${DLQUEUE} $(git diff --name-only HEAD last -- "${GITBOX}/*") > /dev/null 2>&1
+    git tag -d last > /dev/null 2>&1
 } >> ${PUSH_LOG}
 
 pull() {
@@ -91,29 +97,33 @@ git pull -q origin "${BRANCH}" > /dev/null 2>&1
 } >> ${NOTIFICATION}
 
 get() {
-local EXT="${1}"
-for FILE in `git diff --name-only HEAD last -- "${GITBOX}/*${EXT}"`; do
+for FILE in ${DLQUEUE}/* ; do
+    local EXT=$(echo ${FILE} | grep -o [.][txt,dl]*$)
     local FROM=`echo ${FILE##*/} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
     case ${EXT} in
     .txt)
+        echo Trying text download...
         local CHAT=${INBOX}'/'${FROM}'.txt'
         xargs curl -sfw '\n' < ${FILE} | tee -a ${LATEST} >> ${CHAT}
         if [ ${?} == '0' ]; then
             whiteline "${BLUE}------${MAGENTA}from ${BOLD}${RED}${FROM}${NORMAL}"$'\n' >> ${LATEST}
             timestamp ${BLUE}'Text received from '${RED}${FROM}
+            rm ${FILE}
         else
-            timestamp "${RED}Download failed"
+            timestamp "${RED}Download failed. Will retry again."
         fi
         ;;
     .dl)
+        echo Trying file download...
         local DOWNLOADED=`xargs curl -sfw %{filename_effective}'\n' < ${FILE}`
         local DIR="${DOWNLOADS}/${FROM}/"
         mkdir -p "${DIR}"
         [ -e "${DOWNLOADED}" ] && mv --backup=numbered "${DOWNLOADED}" "${DIR}"
         if [ ${?} == 0 ]; then 
             timestamp "${BLUE}File received from ${RED}${FROM}"
+            rm ${FILE}
         else
-            timestamp "${RED}Download failed"
+            timestamp "${RED}Download failed. Will retry again."
         fi
         ;;
     esac
@@ -135,8 +145,7 @@ fi
 until [ ${COUNT} == ${ITERATION} ] ; do
     pull
     push
-    get '.txt' ; get '.dl'
-    git tag -d last > /dev/null 2>&1
+    get
     ((COUNT++))
 done
 echo "Everything synced gracefully"
@@ -163,13 +172,13 @@ local TO=${1}
 local POSTBOX=${REPO}'/.'${TO}
 local TEXT
 
-[ ! -d "${POSTBOX}" ] && echo ${RED}'ERROR: Recipient could not be found. Sending failed.' && return 1
+[ ! -d "${POSTBOX}" ] && echo ${RED}'ERROR: Recipient could not be found. Sending failed.'${NORMAL} && return 1
 echo 'Posting...'
 
 if [ -f "${2}" ]; then
     local URL=`curl -sfF "file=@${2}" https://file.io/?expires=2 | grep -o "https://file.io/[A-Za-z0-9]*"`
     if [ -z "${URL}" ]; then 
-        echo ${RED}"ERROR: File upload failed. Check internet connectivity."
+        echo ${RED}"ERROR: File upload failed. Check internet connectivity."${NORMAL}
         return 2
     fi
     card "${URL} -o /tmp/${2##*/}" ".dl"
@@ -179,11 +188,11 @@ else
 fi
 
 local URL=`curl -s --data "text=${TEXT}" https://file.io | grep -o "https://file.io/[A-Za-z0-9]*"`
-[ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity." && return 3
+[ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity."${NORMAL} && return 3
 card ${URL} .txt
 local CHAT=${INBOX}'/'${TO}'.txt'
 echo -e ${2}$'\n' >> ${CHAT}
-echo 'Message posted for delivery. To be delivered on next push.'
+echo ${GREEN}'Message posted for delivery. To be delivered on next push.'${NORMAL}
 }
 
 frontend() {
@@ -241,7 +250,9 @@ while [ -z "${INPUT}" ]; do
         esac
     else
     display
+    tput cnorm
     read -erp 'Input: ' INPUT
+    tput civis
     fi
     unset EXITLOOP
 done
