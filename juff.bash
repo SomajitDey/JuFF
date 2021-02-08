@@ -217,8 +217,7 @@ local SCROLL='2'
 local SHOWINGTILL
 
 [ ! -e "${FILE}" ] && echo > ${FILE}
-declare -g PREVINPUT="${INPUT}"
-unset INPUT
+unset INPUT ; unset EXITLOOP
 while [ -z "${INPUT}" ]; do
     while [ -z "${EXITLOOP}" ]; do
         local WINDOW=$(set -- $(wc -l ${FILE}) && echo $1)
@@ -234,12 +233,11 @@ while [ -z "${INPUT}" ]; do
         case ${EXITLOOP}${TRAILING} in
             ${UP} ) SHOWINGTILL=$((${SHOWINGTILL} - ${SCROLL})) ;;
             ${DOWN} ) (( ${SHOWINGTILL} + ${SCROLL} <= ${WINDOW} )) && SHOWINGTILL=${SHOWINGTILL}+${SCROLL} ;;
-            ${Right} ) [ -n "${PREVINPUT}" ] && INPUT="${PREVINPUT}" && return 0 ;;
-            ${LEFT} | * ) return 1 ;;
+            ${RIGHT} ) return 2 ;;
+            ${LEFT} ) return 3 ;;
+            * ) return 1 ;;
         esac
     else
-#    tput clear
-#    sed -n p ${FILE}
     display
     read -erp 'Input: ' INPUT
     fi
@@ -251,45 +249,50 @@ return 0
 
 backend() {
 if [ ${PAGE} == '1' ]; then
-    if [ -n "${INPUT}" ]; then
-        CORRESPONDENT="${INPUT}"
-        if [ ! -d "${REPO}/.${CORRESPONDENT}" ]; then
-            echo ${RED}'Recipient could not be found.'
-            unset CORRESPONDENT
-            return 1
-        fi
-    else
-        [ -z "${CORRESPONDENT}" ] && unset PAGE && echo 'Quitting' && return 1
-    fi
-    PAGE='2'
-    echo "Chatting with ${CORRESPONDENT}" >> ${LASTACT_LOG}
-else
-    if [ -n "${INPUT}" ]; then
-        MESSAGE="${INPUT}"
-        post "${CORRESPONDENT}" "${MESSAGE}" >> "${DELIVERY}" &
-        declare -g postPID+=(${!})
-        unset MESSAGE ; unset INPUT
-    else
-        PAGE='1'
+    if [ ! -d "${REPO}/.${CORRESPONDENT}" ]; then
+        echo ${RED}'Recipient could not be found.'
         unset CORRESPONDENT
-        echo "Back from chatting with ${CORRESPONDENT}" >> ${LASTACT_LOG}
+    else
+        PAGE='2'
+        echo "Chatting with ${CORRESPONDENT}"
     fi
+else
+    post "${CORRESPONDENT}" "${MESSAGE}" >> "${DELIVERY}" &
+    declare -g postPID+=(${!})
+    unset MESSAGE
 fi
 } >> ${LASTACT_LOG}
 
 ui() {
 tput smcup ; tput civis
-local INPUT
+altscr() {
+tput rmcup ; tput cnorm
+read -sn1 -p 'Press any key to return to juff. Ctrl-c to exit.' && read -st0.001
+echo ; tput cuu1 ; tput ed ; tput smcup ; tput civis
+}
+local INPUT ; local PREV_CORR
 while [ -n "${PAGE}" ]; do
     case ${PAGE} in
     1)
-        [ -z "${CORRESPONDENT}" ] && frontend ${LATEST} 'Who do you wanna chat with?'
-        backend
-        ;;
+        if [ -z "${CORRESPONDENT}" ]; then 
+            frontend ${LATEST} 'Who do you wanna chat with?'
+            case ${?} in
+            0)  CORRESPONDENT="${INPUT}" ;;
+            1)  unset PAGE ;;
+            2)  CORRESPONDENT="${PREV_CORR}" ;;
+            3)  altscr ;;
+            esac
+        fi
+        [ -n "${CORRESPONDENT}" ] && backend ;;
     2)
-        [ -z "${MESSAGE}" ] && frontend "${INBOX}/${CORRESPONDENT}.txt" 'Enter message or drag and drop files to send'
-        backend
-        ;;
+        frontend "${INBOX}/${CORRESPONDENT}.txt" 'Enter message or drag and drop files to send'
+        case ${?} in 
+        0)  MESSAGE="${INPUT}" ;;
+        1 | 3 ) PAGE='1' ; PREV_CORR="${CORRESPONDENT}" ; unset CORRESPONDENT
+                echo "Back from chatting with ${CORRESPONDENT}" >> ${LASTACT_LOG} ;;
+        2 ) altscr ;;
+        esac
+        [ -n "${MESSAGE}" ] && backend ;;
     esac
 done
 
