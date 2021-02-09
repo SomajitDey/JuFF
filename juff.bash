@@ -87,9 +87,21 @@ push() {
     else
         echo ${MAGENTA}'git is synced'${NORMAL}
     fi
-    ln -t ${DLQUEUE} $(git diff --name-only HEAD last -- "${GITBOX}/*") > /dev/null 2>&1
-    git tag -d last > /dev/null 2>&1
 } >> ${PUSH_LOG}
+
+queue() {
+local COMMIT
+    for LINE in $(git log --name-only --pretty=format:%h last.. -- "${GITBOX}"); do
+        if [ ! -f "${LINE}" && "${LINE}" != "${LINE##*/}" ]; then
+            COMMIT="${LINE}" && echo COMMIT=${COMMIT}
+        else
+            ln -t ${DLQUEUE} ${LINE} > /dev/null 2>&1 && continue
+            git restore -q --source="${COMMIT}" "${LINE}" && ln -t ${DLQUEUE} ${LINE} && \
+            git restore -q --source=HEAD "${LINE}"
+        fi
+    done
+    git tag -d last > /dev/null 2>&1
+} >> ${NOTIFICATION}
 
 pull() {
 git tag last > /dev/null 2>&1
@@ -147,6 +159,7 @@ fi
 until [ ${COUNT} == ${ITERATION} ] ; do
     pull
     push
+    queue
     get
     ((COUNT++))
 done
