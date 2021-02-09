@@ -97,6 +97,7 @@ local COMMIT
         else
             ln -t ${DLQUEUE} ${LINE} > /dev/null 2>&1 && continue
             git restore -q --source="${COMMIT}" "${LINE}" && ln -t ${DLQUEUE} ${LINE} && \
+            rm "${LINE}"
             git restore -q --source=HEAD "${LINE}"
         fi
     done
