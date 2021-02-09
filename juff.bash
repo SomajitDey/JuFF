@@ -151,7 +151,7 @@ until [ ${COUNT} == ${ITERATION} ] ; do
     ((COUNT++))
 done
 echo "Everything synced gracefully"
-exit
+echo "Press Enter if the prompt is not available below"
 }
 
 quit() {
