@@ -91,9 +91,9 @@ push() {
 
 queue() {
 local COMMIT
-    for LINE in $(git log --name-only --pretty=format:%h last.. -- "${GITBOX}"); do
-        if [ ! -f "${LINE}" && "${LINE}" != "${LINE##*/}" ]; then
-            COMMIT="${LINE}" && echo COMMIT=${COMMIT}
+    for LINE in $(git log --name-only --pretty=format:%H last.. -- "${GITBOX}"); do
+        if [ "${LINE}" == "${LINE##*/}" ]; then
+            COMMIT="${LINE}"
         else
             ln -t ${DLQUEUE} ${LINE} > /dev/null 2>&1 && continue
             git restore -q --source="${COMMIT}" "${LINE}" && ln -t ${DLQUEUE} ${LINE} && \
