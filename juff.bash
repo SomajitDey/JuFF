@@ -24,6 +24,7 @@ declare -rg LASTACT_LOG=${LOGS}'/lastaction.log'
 declare -rg NOTIFICATION=${LOGS}'/notification.log'
 declare -rg DELIVERY=${LOGS}'/delivery.log'
 declare -rg DLQUEUE=${INBOX}'/.dlqueue'
+declare -rg BUFFER=${INBOX}'/.buffer.txt'
 }
 
 whiteline() {
@@ -104,8 +105,9 @@ for FILE in ${DLQUEUE}/* ; do
     .txt)
         echo Trying text download...
         local CHAT=${INBOX}'/'${FROM}'.txt'
-        xargs curl -sfw '\n' < ${FILE} | tee -a ${LATEST} >> ${CHAT}
+        xargs curl -sf -o "${BUFFER}" < ${FILE}
         if [ ${?} == '0' ]; then
+            (cat "${BUFFER}" && echo) | tee -a ${LATEST} >> ${CHAT} && rm "${BUFFER}"
             whiteline "${BLUE}------${MAGENTA}from ${BOLD}${RED}${FROM}${NORMAL}"$'\n' >> ${LATEST}
             timestamp ${BLUE}'Text received from '${RED}${FROM}
             rm ${FILE}
