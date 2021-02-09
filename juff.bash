@@ -265,7 +265,7 @@ return 0
 backend() {
 if [ ${PAGE} == '1' ]; then
     if [ ! -d "${REPO}/.${CORRESPONDENT}" ]; then
-        echo ${RED}'Recipient could not be found.'
+        echo ${RED}'Recipient could not be found.'${NORMAL}
         unset CORRESPONDENT
     else
         PAGE='2'
