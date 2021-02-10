@@ -276,7 +276,7 @@ echo -e ${1} > ${BLOB}
 
 local FROM=${SELF}
 local TO=${1}
-local POSTBOX=${REPO}'/.'${TO}
+local POSTBOX=${REPO}'/'${TO}
 local TEXT
 
 [ ! -d "${POSTBOX}" ] && echo ${RED}'ERROR: Recipient could not be found. Sending failed.'${NORMAL} && return 1
