@@ -168,6 +168,28 @@ else
 fi
 }
 
+trustpull() {
+cd ${TRUSTLOCAL}
+git -q pull origin main || echo 'Pulling from key-server failed'
+cd ${OLDPWD}
+} >> ${NOTIFICATION}
+
+keyretrieve() {
+local KEYOF=${1}
+local BEFORE=${2}
+cd ${TRUSTLOCAL}
+local COMMIT=$(git log --name-only --pretty=format:%H --before=${BEFORE} -1 | awk NR==1)
+
+#The idea is that any new public key will always be accompanied with revocation cert of the previous key
+git restore -q --source="${COMMIT}" "${KEYOF}*"
+for FILES in ${KEYOF}* ; do
+    gpg --no-default-keyring --keyring ${SELFKEYRING} \
+    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --import ${SELF} || echo 'Key import failed'
+done
+cd ${OLDPWD}
+} >> ${NOTIFICATION}
+
 push() {
 declare -g PUSHOK='true'
     git add --all > /dev/null 2>&1
@@ -428,6 +450,7 @@ done
 
 readonly_globals
 config
+trustpull
 CORRESPONDENT=${1}
 MESSAGE=${2}
 if [ -n "${MESSAGE}" ]; then
