@@ -88,7 +88,7 @@ declare -rg VERIFIED_SELF=${TRUSTLOCAL}'/${SELF}'   #Contains pubkey (verified t
 declare -rg ABOUT=${GITBOX}'/about.txt'
 
 key() {
-
+[ -e ${SELFKEYRING} ] && return
 if [ -e "${PORT}" ]; then
     tar -xzf ${PORT} --directory ${INBOX}
 else
@@ -131,8 +131,8 @@ fi
 
 if [ -e "${VERIFIED_SELF}" ]; then
     if [ -n "${TOREGISTER}" ]; then
-        echo "${GREEN}This email id is already available and verified.${NORMAL}"
-        echo "I have reconfigured the ${INBOX}. ${MAGENTA} What now? ${NORMAL}"
+        echo "${GREEN}This email id is already present and verified.${NORMAL}"
+        echo "I have reconfigured the ${INBOX}. ${MAGENTA}What now?${NORMAL}"
         echo "${BOLD}1)${NORMAL}${BLUE}Create ${PORT} and relaunch me.${NORMAL}"
         echo "${BOLD}2)${NORMAL}${YELLOW}In case you have lost your JuFF key, "\
              "email a 'new-key' request to ${MAILINGLIST}${NORMAL}"
@@ -142,12 +142,13 @@ if [ -e "${VERIFIED_SELF}" ]; then
     mkdir -p ${GITBOX}
     [ ! -e "${ABOUT}" ] && \
     echo "This is the JuFF postbox of $SELF_NAME.$'\n'For verified pubkey, refer to $TRUSTREMOTE" > ${ABOUT}
-    [ ! -e ${SELFKEYRING} ] && key    
+    key
 else
     if [ -n "${TOREGISTER}" ]; then
         key
     else
-        echo "${RED}The account ${SELF} has been deleted." \
+        key
+        echo "${RED}The account ${SELF} is not present. If this is unexpected, " \
         "${BLUE}Email ${UNDERLINE}${MAILINGLIST} to query.${NORMAL}"
         exit
     fi
