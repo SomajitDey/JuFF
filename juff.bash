@@ -40,6 +40,7 @@ declare -rg GITHUBPAT=${TRUSTLOCAL}'/access_token.txt'
 declare -rg MAILINGLIST='somajit@users.sourceforge.net'
 declare -g GPGPASSWD
 declare -g SELFKEYID
+declare -rg REGISTRAR='registration#juff@github.com'
 }
 
 whiteline() {
@@ -80,15 +81,16 @@ else
     cd ${REPO}
 fi
 
-declare -g SELF_NAME=`git config --local user.name`
-declare -g SELF_EMAIL=`git config --local user.email`
+declare -rg SELF_NAME=`git config --local user.name`
+declare -rg SELF_EMAIL=`git config --local user.email`
 declare -rg SELF=${SELF_NAME}'#'${SELF_EMAIL}
 declare -rg GITBOX=${REPO}'/'${SELF}
 declare -rg VERIFIED_SELF=${TRUSTLOCAL}'/${SELF}'   #Contains pubkey (verified through mail) signed by admin
 declare -rg ABOUT=${GITBOX}'/about.txt'
 
 key() {
-[ -e ${SELFKEYRING} ] && return
+#One can encrypt this PASSWDFILE with a memorable password/PIN which will then become the juff passwd
+[ -e ${SELFKEYRING} ] && { cat ${PASSWDFILE} | read GPGPASSWD ; } && return
 if [ -e "${PORT}" ]; then
     tar -xzf ${PORT} --directory ${INBOX}
 else
@@ -100,28 +102,34 @@ else
     echo ${GPGPASSWD} > ${PASSWDFILE}
     echo 'Passphrase created'
 
-    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    gpg --no-default-keyring --keyring ${SELFKEYRING} \
     --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --quick-gen-key ${SELF}
-    echo 'Key created'
+    --quick-gen-key ${SELF} || echo 'Key creation failed'
+    
 
-    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    gpg --no-default-keyring --keyring ${SELFKEYRING} \
     --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --armor --output ${EXPORT_PUB} --export ${SELF}
-    echo 'Public key exported'
+    --armor --output ${EXPORT_PUB} --export ${SELF} || echo 'Public key export failed'
 
-    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    gpg --no-default-keyring --keyring ${SELFKEYRING} \
     --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --armor --output ${EXPORT_SEC} --export-secret-keys ${SELF}
-    echo 'Secure key exported'
+    --armor --output ${EXPORT_SEC} --export-secret-keys ${SELF} || echo 'Secure key export failed'
     
     cd ${INBOX} ; tar -cvzf ${PORT} .gnupg ; cd ${OLDPWD}
     
+    if [ -e ${EXPORT_PUB} ]; then 
+        echo 'Uploading your public key for registration...'
+        post ${REGISTRAR} ${EXPORT_PUB}
+        daemon 1
+    fi
+    
     echo "Your key id is: "
 
-    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    gpg --no-default-keyring --keyring ${SELFKEYRING} \
     --keyid-format long -k ${SELF} | awk NR==2 | (read SELFKEYID && echo ${YELLOW}${SELFKEYID}${NORMAL})
     echo "Now email this key id to ${MAILINGLIST} from ${SELF_EMAIL} to complete your registration"
+    [ "${PUSHOK}" != 'true' ] && echo "Also attach ${EXPORT_PUB} with your mail. Thank you."
+    
     echo ${NORMAL}"Once verification is done you will receive a message both here and at ${SELF_EMAIL}"
     echo ${NORMAL}${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"
     echo "See ya then!"
@@ -138,7 +146,7 @@ if [ -e "${VERIFIED_SELF}" ]; then
              "email a 'new-key' request to ${MAILINGLIST}${NORMAL}"
         exit
     fi
-    echo "Everything is in order"
+    
     mkdir -p ${GITBOX}
     [ ! -e "${ABOUT}" ] && \
     echo "This is the JuFF postbox of $SELF_NAME.$'\n'For verified pubkey, refer to $TRUSTREMOTE" > ${ABOUT}
@@ -156,6 +164,7 @@ fi
 }
 
 push() {
+declare -g PUSHOK='true'
     git add --all > /dev/null 2>&1
     if ! git diff --quiet HEAD; then
         { git commit -qm 'by juff-daemon' && git push -q origin "${BRANCH}" ;} > /dev/null 2>&1
@@ -163,7 +172,8 @@ push() {
             timestamp "${GREEN}Push successful"
             echo ${YELLOW}'Delivered!'${NORMAL} > "${DELIVERY}"
         else
-            timestamp "${RED}Push failed"
+            PUSHOK='false'
+            timestamp "${RED}Push failed. Maybe becoz pull is required or maybe there's no net"
         fi
     else
         echo ${MAGENTA}'git is synced'${NORMAL}
@@ -243,7 +253,7 @@ until [ ${COUNT} == ${ITERATION} ] ; do
     push
     queue
     get
-    ((COUNT++))
+    [ "${PUSHOK}"=='true' ] && ((COUNT++))
 done
 echo "Everything synced gracefully"
 echo "Press Enter if the prompt is not available below"
