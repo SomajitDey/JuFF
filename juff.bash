@@ -38,7 +38,7 @@ declare -rg TMPKEYRING=${GPGHOME}'/corr.kbx'
 declare -rg ORIGPWD=${PWD}
 declare -rg GITHUBPAT=${TRUSTLOCAL}'/access_token.txt'
 declare -rg MAILINGLIST='somajit@users.sourceforge.net'
-declare -rg GPGPASSWD
+declare -g GPGPASSWD
 }
 
 whiteline() {
@@ -74,7 +74,7 @@ if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     read -p 'Enter your emailid (this will be verified): ' RESPONSE
     set -- ${RESPONSE}
     git config --local user.email ${1}
-    git config credential.helper store --file=${GITHUBPAT}
+    git config --local credential.helper store --file=${GITHUBPAT}
 else
     cd ${REPO}
 fi
@@ -85,6 +85,49 @@ declare -rg SELF=${SELF_NAME}'#'${SELF_EMAIL}
 declare -rg GITBOX=${REPO}'/'${SELF}
 declare -rg VERIFIED_SELF=${TRUSTLOCAL}'/${SELF}'   #Contains pubkey (verified through mail) signed by admin
 declare -rg ABOUT=${GITBOX}'/about.txt'
+
+key() {
+
+if [ -e "${PORT}" ]; then
+    tar -xzf ${PORT} --directory ${INBOX}
+else
+    echo "Creating your credentials..."
+    local SEC_HASH="$(echo ${EPOCHSECONDS} | sha256sum)"
+    set -- ${SEC_HASH}
+    GPGPASSWD=${1}
+
+    echo ${GPGPASSWD} > ${PASSWDFILE}
+    echo 'Passphrase created'
+
+    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --quick-gen-key ${SELF}
+    echo 'Key created'
+
+    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --armor --output ${EXPORT_PUB} --export ${SELF}
+    echo 'Public key exported'
+
+    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --armor --output ${EXPORT_SEC} --export-secret-keys ${SELF}
+    echo 'Secure key exported'
+    
+    tar -cvzf ${PORT} ${GPGHOME}
+    
+    echo "Your key id is: "
+    local READ    
+    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    --keyid-format long -k ${SELF} | awk NR==2 | (read READ && echo ${YELLOW}${READ}${NORMAL})
+    echo "Now email this key id to ${MAILINGLIST} from ${SELF_EMAIL} to complete your registration"
+    echo ${NORMAL}"Once verification is done you will receive a message both here and at ${SELF_EMAIL}"
+    echo ${NORMAL}${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"
+    echo "See ya then!"
+    exit
+fi
+}
+
 if [ -e "${VERIFIED_SELF}" ]; then
     if [ -n "${TOREGISTER}" ]; then
         echo "${GREEN}This email id is already available and verified.${NORMAL}"
@@ -94,6 +137,7 @@ if [ -e "${VERIFIED_SELF}" ]; then
              "email a 'new-key' request to ${MAILINGLIST}${NORMAL}"
         exit
     fi
+    echo "Everything is in order"
     mkdir -p ${GITBOX}
     [ ! -e "${ABOUT}" ] && \
     echo "This is the JuFF postbox of $SELF_NAME.$'\n'For verified pubkey, refer to $TRUSTREMOTE" > ${ABOUT}
@@ -104,46 +148,9 @@ else
     else
         echo "${RED}The account ${SELF} has been deleted." \
         "${BLUE}Email ${UNDERLINE}${MAILINGLIST} to query.${NORMAL}"
+        exit
     fi
 fi
-
-key() {
-
-if [ -e "${PORT}" ]; then
-    tar -xzf ${PORT}
-else
-    echo "Creating your credentials..."
-    local SEC_HASH="$(echo ${EPOCHSECONDS} | sha256sum)"
-    set -- ${SEC_HASH}
-    GPGPASSWD=${1}
-
-    echo ${GPGPASSWD} > ${PASSWDFILE}
-
-    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
-    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --quick-gen-key ${SELF}
-
-    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
-    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --armor --output ${EXPORT_PUB} --export ${SELF}
-
-    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
-    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --armor --output ${EXPORT_SEC} --export-secret-keys ${SELF}
-    
-    tar -cvzf ${PORT} ${GPGHOME}
-    
-    echo "Your key id is: "${YELLOW}
-    local READ    
-    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
-    --keyid-format long -k ${SELF} | awk NR==2 | (read READ && echo ${READ})
-    echo ${Blue}"Now email this key id to ${MAILINGLIST} from ${SELF_EMAIL} to complete your registration"
-    echo ${NORMAL}"Once verification is done you will receive a message both here and at ${SELF_EMAIL}"
-    echo ${NORMAL}${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"
-    echo "See ya then!"
-fi
-}
-
 }
 
 push() {
