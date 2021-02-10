@@ -119,8 +119,9 @@ else
     
     if [ -e ${EXPORT_PUB} ]; then 
         echo 'Uploading your public key for registration...'
-        post ${REGISTRAR} ${EXPORT_PUB}
+        post "${REGISTRAR}" "${EXPORT_PUB}"
         daemon 1
+        tail -n 1 "${DELIVERY}"
     fi
     
     echo "Your key id is: "
@@ -279,7 +280,7 @@ local TO=${1}
 local POSTBOX=${REPO}'/'${TO}
 local TEXT
 
-[ ! -d "${POSTBOX}" ] && echo ${RED}'ERROR: Recipient could not be found. Sending failed.'${NORMAL} && return 1
+[ ! -d "${POSTBOX}" ] && echo ${RED}"ERROR: ${POSTBOX} could not be found. Sending failed."${NORMAL} && return 1
 echo 'Posting...'
 
 if [ -f "${2}" ]; then
