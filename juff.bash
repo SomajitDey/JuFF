@@ -137,6 +137,7 @@ else
         echo "See ya then!"
     else
         echo "Key creation failed...something went wrong."
+    fi
     exit
 fi
 }
