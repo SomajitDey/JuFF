@@ -29,7 +29,7 @@ declare -rg TRUSTREMOTE='https://github.com/SomajitDey/JuFF-KeyServer.git'
 #This is a github repo where the maintainer stores files with pubkeys from verified accounts
 declare -rg TRUSTLOCAL=${INBOX}'/.trustcentre'
 declare -rg PORT=${INBOX}'/my_JuFF.key'
-declare -rg GPGHOME=${INBOX}'/.gpg'
+declare -rg GPGHOME=${INBOX}'/.gnupg'
 declare -rg SELFKEYRING=${GPGHOME}'/self.kbx'
 declare -rg EXPORT_SEC=${GPGHOME}'/privatekey.asc'
 declare -rg EXPORT_PUB=${GPGHOME}'/pubkey.asc'
@@ -39,6 +39,7 @@ declare -rg ORIGPWD=${PWD}
 declare -rg GITHUBPAT=${TRUSTLOCAL}'/access_token.txt'
 declare -rg MAILINGLIST='somajit@users.sourceforge.net'
 declare -g GPGPASSWD
+declare -g SELFKEYID
 }
 
 whiteline() {
@@ -114,12 +115,12 @@ else
     --armor --output ${EXPORT_SEC} --export-secret-keys ${SELF}
     echo 'Secure key exported'
     
-    tar -cvzf ${PORT} ${GPGHOME}
+    cd ${INBOX} ; tar -cvzf ${PORT} .gnupg ; cd ${OLDPWD}
     
     echo "Your key id is: "
-    local READ    
+
     gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
-    --keyid-format long -k ${SELF} | awk NR==2 | (read READ && echo ${YELLOW}${READ}${NORMAL})
+    --keyid-format long -k ${SELF} | awk NR==2 | (read SELFKEYID && echo ${YELLOW}${SELFKEYID}${NORMAL})
     echo "Now email this key id to ${MAILINGLIST} from ${SELF_EMAIL} to complete your registration"
     echo ${NORMAL}"Once verification is done you will receive a message both here and at ${SELF_EMAIL}"
     echo ${NORMAL}${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"
@@ -249,7 +250,7 @@ echo "Press Enter if the prompt is not available below"
 
 quit() {
     [ -n "${dPID}" ] && kill ${dPID} >/dev/null 2>&1
-    cd ${OLDPWD} ; tput cnorm ; tput sgr0 ; tput rmcup
+    cd ${ORIGPWD} ; tput cnorm ; tput sgr0 ; tput rmcup
     wait ${postPID[@]}
     exit ${1}
 }
