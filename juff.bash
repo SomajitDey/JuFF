@@ -14,7 +14,7 @@ declare -rg BELL=`tput bel`
 
 declare -rg REMOTE='https://github.com/SomajitDey/juff.git' #Use ssh instead of https for faster git push
 declare -rg BRANCH='test'
-declare -rg INBOX=${HOME}'/Inbox_Juff'
+declare -rg INBOX=${HOME}'/Inbox_JuFF'
 declare -rg REPO=${INBOX}'/.git'
 declare -rg LATEST=${INBOX}'/.all.txt'
 declare -rg DOWNLOADS=${INBOX}'/Downloads'
@@ -27,10 +27,12 @@ declare -rg DLQUEUE=${INBOX}'/.dlqueue'
 declare -rg BUFFER=${INBOX}'/.buffer.txt'
 declare -rg TRUSTREMOTE= #This is a github repo where the maintainer stores files with pubkeys from verified accounts
 declare -rg TRUSTLOCAL=${INBOX}'/.trust'
-declare -rg PORT=${INBOX}'/my_juff.key'
+declare -rg PORT=${INBOX}'/my_JuFF.key'
 declare -rg GPGHOME=${INBOX}'/.gpg'
 declare -rg SELFKEYBOX=${GPGHOME}'/self.kbx'
 declare -rg TMPKEYBOX=${GPGHOME}'/corr.kbx'
+declare -rg ORIGPWD=${PWD}
+declare -rg GITHUBPAT=${TRUSTLOCAL}'/access_token.txt'
 }
 
 whiteline() {
@@ -43,41 +45,39 @@ timestamp() {
 
 config() {
 
-declare -g PAGE='1'
-
+mkdir -p ${INBOX}
+mkdir -p ${DOWNLOADS}
+mkdir -p ${LOGS}
+mkdir -p ${DLQUEUE}
+mkdir -p ${GPGHOME}
 echo >> ${PUSH_LOG}
 echo >> ${NOTIFICATION}
 echo >> ${DELIVERY}
 echo >> ${LASTACT_LOG}
 
-if [ ! -d "${REPO}/.git" ]; then
-    mkdir -p ${INBOX}
-    mkdir -p ${DOWNLOADS}
-    mkdir -p ${LOGS}
-    mkdir -p ${DLQUEUE}
-    git clone "${REMOTE}" "${REPO}" || exit
+if [ ! -d "${TRUSTLOCAL}/.git" ]; then
+    git clone "${TRUSTREMOTE}" "${TRUSTLOCAL}" || { echo "Perhaps an issue with your network"; exit;}
+    git clone "${REMOTE}" "${REPO}" || { echo "Perhaps an issue with your network"; exit;}
     cd ${REPO}
     read -p 'Enter your name without any spaces [you may use _ and .]: ' RESPONSE
     set -- ${RESPONSE}
     git config --local user.name ${1}
-    read -p 'Enter your existing emailid: ' RESPONSE
+    read -p 'Enter your emailid (this will be verified): ' RESPONSE
     set -- ${RESPONSE}
     git config --local user.email ${1}
-    SELF_EMAIL=${1}
-    git config credential.helper store
-    echo what about the PAT? && exit
+    git config credential.helper store --file=${GITHUBPAT}
 fi
 
-[ ${PWD} != ${REPO} ] && cd ${REPO}
+[ "${PWD}" != "${REPO}" ] && cd ${REPO}
 
 declare -g SELF_NAME=`git config --local user.name`
 declare -g SELF_EMAIL=`git config --local user.email`
-
 declare -rg SELF=${SELF_NAME}'#'${SELF_EMAIL}
 declare -rg GITBOX=${REPO}'/.'${SELF}
 mkdir -p "${GITBOX}"
-declare -rg ANCHOR=${GITBOX}'/anchor'
-[ ! -e "${ANCHOR}" ] && echo 'This is just so that this directory is never empty' > ${ANCHOR}
+declare -rg ABOUT=${GITBOX}'/about.txt'
+[ ! -e "${ABOUT}" ] && \
+echo "This is the JuFF postbox of $SELF_NAME.$'\n'For verified pubkey refer to $TRUSTREMOTE" > ${ABOUT}
 }
 
 push() {
@@ -112,7 +112,7 @@ local COMMIT
 
 pull() {
 git tag last > /dev/null 2>&1
-git pull -q origin "${BRANCH}" > /dev/null 2>&1
+git pull -q --ff-only origin "${BRANCH}" > /dev/null 2>&1
 [ ${?} != 0 ] && timestamp "${RED}Pull failed. Check internet connectivity" && return 1
 } >> ${NOTIFICATION}
 
@@ -306,6 +306,7 @@ read -sn1 -p 'Press any key to return to juff. Ctrl-c to exit.' && read -st0.001
 echo ; tput cuu1 ; tput ed ; tput smcup ; tput civis
 }
 local INPUT ; local PREV_CORR
+local PAGE='1'
 while [ -n "${PAGE}" ]; do
     case ${PAGE} in
     1)
