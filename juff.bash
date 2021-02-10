@@ -25,6 +25,12 @@ declare -rg NOTIFICATION=${LOGS}'/notification.log'
 declare -rg DELIVERY=${LOGS}'/delivery.log'
 declare -rg DLQUEUE=${INBOX}'/.dlqueue'
 declare -rg BUFFER=${INBOX}'/.buffer.txt'
+declare -rg TRUSTREMOTE= #This is a github repo where the maintainer stores files with pubkeys from verified accounts
+declare -rg TRUSTLOCAL=${INBOX}'/.trust'
+declare -rg PORT=${INBOX}'/my_juff.key'
+declare -rg GPGHOME=${INBOX}'/.gpg'
+declare -rg SELFKEYBOX=${GPGHOME}'/self.kbx'
+declare -rg TMPKEYBOX=${GPGHOME}'/corr.kbx'
 }
 
 whiteline() {
