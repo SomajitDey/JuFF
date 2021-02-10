@@ -26,13 +26,18 @@ declare -rg DELIVERY=${LOGS}'/delivery.log'
 declare -rg DLQUEUE=${INBOX}'/.dlqueue'
 declare -rg BUFFER=${INBOX}'/.buffer.txt'
 declare -rg TRUSTREMOTE= #This is a github repo where the maintainer stores files with pubkeys from verified accounts
-declare -rg TRUSTLOCAL=${INBOX}'/.trust'
+declare -rg TRUSTLOCAL=${INBOX}'/.trustcentre'
 declare -rg PORT=${INBOX}'/my_JuFF.key'
 declare -rg GPGHOME=${INBOX}'/.gpg'
-declare -rg SELFKEYBOX=${GPGHOME}'/self.kbx'
-declare -rg TMPKEYBOX=${GPGHOME}'/corr.kbx'
+declare -rg SELFKEYRING=${GPGHOME}'/self.kbx'
+declare -rg EXPORT_SEC=${GPGHOME}'/privatekey.asc'
+declare -rg EXPORT_PUB=${GPGHOME}'/pubkey.asc'
+declare -rg PASSWDFILE=${GPGHOME}'/passphrase.txt'
+declare -rg TMPKEYRING=${GPGHOME}'/corr.kbx'
 declare -rg ORIGPWD=${PWD}
 declare -rg GITHUBPAT=${TRUSTLOCAL}'/access_token.txt'
+declare -rg MAILINGLIST='somajit@users.sourceforge.net'
+declare -rg GPGPASSWD
 }
 
 whiteline() {
@@ -44,7 +49,7 @@ timestamp() {
 }
 
 config() {
-
+echo "Configuring ..."
 mkdir -p ${INBOX}
 mkdir -p ${DOWNLOADS}
 mkdir -p ${LOGS}
@@ -56,6 +61,7 @@ echo >> ${DELIVERY}
 echo >> ${LASTACT_LOG}
 
 if [ ! -d "${TRUSTLOCAL}/.git" ]; then
+    local TOREGISTER='TRUE'
     git clone "${TRUSTREMOTE}" "${TRUSTLOCAL}" || { echo "Perhaps an issue with your network"; exit;}
     git clone "${REMOTE}" "${REPO}" || { echo "Perhaps an issue with your network"; exit;}
     cd ${REPO}
@@ -66,18 +72,75 @@ if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     set -- ${RESPONSE}
     git config --local user.email ${1}
     git config credential.helper store --file=${GITHUBPAT}
+else
+    cd ${REPO}
 fi
-
-[ "${PWD}" != "${REPO}" ] && cd ${REPO}
 
 declare -g SELF_NAME=`git config --local user.name`
 declare -g SELF_EMAIL=`git config --local user.email`
 declare -rg SELF=${SELF_NAME}'#'${SELF_EMAIL}
-declare -rg GITBOX=${REPO}'/.'${SELF}
-mkdir -p "${GITBOX}"
+declare -rg GITBOX=${REPO}'/'${SELF}
+declare -rg VERIFIED_SELF=${TRUSTLOCAL}'/${SELF}'   #Contains pubkey (verified through mail) signed by admin
 declare -rg ABOUT=${GITBOX}'/about.txt'
-[ ! -e "${ABOUT}" ] && \
-echo "This is the JuFF postbox of $SELF_NAME.$'\n'For verified pubkey refer to $TRUSTREMOTE" > ${ABOUT}
+if [ -e "${VERIFIED_SELF}" ]; then
+    if [ -n "${TOREGISTER}" ]; then
+        echo "${GREEN}This email id is already available and verified.${NORMAL}"
+        echo "I have reconfigured the ${INBOX}. ${MAGENTA} What now? ${NORMAL}"
+        echo "${BOLD}1)${NORMAL}${BLUE}Create ${PORT} and relaunch me.${NORMAL}"
+        echo "${BOLD}2)${NORMAL}${YELLOW}In case you have lost your JuFF key, "\
+             "email a 'new-key' request to ${MAILINGLIST}${NORMAL}"
+        exit
+    fi
+    mkdir -p ${GITBOX}
+    [ ! -e "${ABOUT}" ] && \
+    echo "This is the JuFF postbox of $SELF_NAME.$'\n'For verified pubkey, refer to $TRUSTREMOTE" > ${ABOUT}
+    [ ! -e ${SELFKEYRING} ] && key    
+else
+    if [ -n "${TOREGISTER}" ]; then
+        key
+    else
+        echo "${RED}The account ${SELF} has been deleted." \
+        "${BLUE}Email ${UNDERLINE}${MAILINGLIST} to query.${NORMAL}"
+    fi
+fi
+
+key() {
+
+if [ -e "${PORT}" ]; then
+    tar -xzf ${PORT}
+else
+    echo "Creating your credentials..."
+    local SEC_HASH="$(echo ${EPOCHSECONDS} | sha256sum)"
+    set -- ${SEC_HASH}
+    GPGPASSWD=${1}
+
+    echo ${GPGPASSWD} > ${PASSWDFILE}
+
+    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --quick-gen-key ${SELF}
+
+    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --armor --output ${EXPORT_PUB} --export ${SELF}
+
+    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --armor --output ${EXPORT_SEC} --export-secret-keys ${SELF}
+    
+    tar -cvzf ${PORT} ${GPGHOME}
+    
+    echo "Your key id is: "${YELLOW}
+    local READ    
+    gpg --homedir ${GPGHOME} --no-default-keyring --keyring ${SELFKEYRING} \
+    --keyid-format long -k ${SELF} | awk NR==2 | (read READ && echo ${READ})
+    echo ${Blue}"Now email this key id to ${MAILINGLIST} from ${SELF_EMAIL} to complete your registration"
+    echo ${NORMAL}"Once verification is done you will receive a message both here and at ${SELF_EMAIL}"
+    echo ${NORMAL}${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"
+    echo "See ya then!"
+fi
+}
+
 }
 
 push() {
