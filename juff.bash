@@ -90,23 +90,22 @@ declare -rg ABOUT=${GITBOX}'/about.txt'
 
 key() {
 #One can encrypt this PASSWDFILE with a memorable password/PIN which will then become the juff passwd
-[ -e ${SELFKEYRING} ] && { cat ${PASSWDFILE} | read GPGPASSWD ; } && return
-if [ -e "${PORT}" ]; then
+if [ ( -f "${SELFKEYRING}" ) && ( -f "${PASSWDFILE}" ) ]; then 
+    { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE}
+elif [ -f "${PORT}" ]; then
     tar -xzf ${PORT} --directory ${INBOX}
 else
     echo "Creating your credentials..."
-    local SEC_HASH="$(echo ${EPOCHSECONDS} | sha256sum)"
+    local SEC_HASH="$(echo ${EPOCHSECONDS}${SELF} | sha256sum)"
     set -- ${SEC_HASH}
     GPGPASSWD=${1}
 
-    echo ${GPGPASSWD} > ${PASSWDFILE}
-    echo 'Passphrase created'
+    echo ${GPGPASSWD} > ${PASSWDFILE} || echo 'Passphrase creation failed'
 
     gpg --no-default-keyring --keyring ${SELFKEYRING} \
     --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --quick-gen-key ${SELF} || echo 'Key creation failed'
     
-
     gpg --no-default-keyring --keyring ${SELFKEYRING} \
     --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --armor --output ${EXPORT_PUB} --export ${SELF} || echo 'Public key export failed'
@@ -124,16 +123,20 @@ else
         tail -n 1 "${DELIVERY}"
     fi
     
-    echo "Your key id is: "
-
     gpg --no-default-keyring --keyring ${SELFKEYRING} \
-    --keyid-format long -k ${SELF} | awk NR==2 | (read SELFKEYID && echo ${YELLOW}${SELFKEYID}${NORMAL})
-    echo "Now email this key id to ${MAILINGLIST} from ${SELF_EMAIL} to complete your registration"
-    [ "${PUSHOK}" != 'true' ] && echo "Also attach ${EXPORT_PUB} with your mail. Thank you."
+    --keyid-format long -k ${SELF} | awk NR==2 | read SELFKEYID 
     
-    echo ${NORMAL}"Once verification is done you will receive a message both here and at ${SELF_EMAIL}"
-    echo ${NORMAL}${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"
-    echo "See ya then!"
+    if [ -n "${SELFKEYID}" ]; then
+        echo ${SELFKEYID} > ${PASSWDFILE}
+        echo "Your key id is: "
+        echo ${YELLOW}${SELFKEYID}${NORMAL})
+        echo "Now email this key id to ${MAILINGLIST} from ${SELF_EMAIL} to complete your registration"
+        [ "${PUSHOK}" != 'true' ] && echo "Also attach ${EXPORT_PUB} with your mail. Thank you."
+        echo "Once verification is done you will receive a message both here and at ${SELF_EMAIL}"
+        echo ${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"
+        echo "See ya then!"
+    else
+        echo "Key creation failed...something went wrong."
     exit
 fi
 }
