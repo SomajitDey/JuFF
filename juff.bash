@@ -13,7 +13,7 @@ declare -rg UNDERLINE=`tput smul`
 declare -rg BELL=`tput bel`
 
 declare -rg REMOTE='https://github.com/SomajitDey/juff.git' #Use ssh instead of https for faster git push
-declare -rg BRANCH='test'
+declare -rg BRANCH='juff-test'
 declare -rg INBOX=${HOME}'/Inbox_JuFF'
 declare -rg REPO=${INBOX}'/.git'
 declare -rg LATEST=${INBOX}'/.all.txt'
@@ -25,7 +25,8 @@ declare -rg NOTIFICATION=${LOGS}'/notification.log'
 declare -rg DELIVERY=${LOGS}'/delivery.log'
 declare -rg DLQUEUE=${INBOX}'/.dlqueue'
 declare -rg BUFFER=${INBOX}'/.buffer.txt'
-declare -rg TRUSTREMOTE= #This is a github repo where the maintainer stores files with pubkeys from verified accounts
+declare -rg TRUSTREMOTE='https://github.com/SomajitDey/JuFF-KeyServer.git'
+#This is a github repo where the maintainer stores files with pubkeys from verified accounts
 declare -rg TRUSTLOCAL=${INBOX}'/.trustcentre'
 declare -rg PORT=${INBOX}'/my_JuFF.key'
 declare -rg GPGHOME=${INBOX}'/.gpg'
@@ -65,6 +66,8 @@ if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     git clone "${TRUSTREMOTE}" "${TRUSTLOCAL}" || { echo "Perhaps an issue with your network"; exit;}
     git clone "${REMOTE}" "${REPO}" || { echo "Perhaps an issue with your network"; exit;}
     cd ${REPO}
+    git switch ${BRANCH}
+    git branch -u 'origin/'${BRANCH}
     read -p 'Enter your name without any spaces [you may use _ and .]: ' RESPONSE
     set -- ${RESPONSE}
     git config --local user.name ${1}
