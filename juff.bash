@@ -383,9 +383,9 @@ frontend() {
 display() {
         tput home
         if [ -z "${EXITLOOP}" ]; then
-            echo -n 'Nav mode ON: Esc = quit or go back ; UP, DOWN, LEFT, RIGHT for navigation'
+            echo 'Nav mode ON: Esc = quit or go back ; UP, DOWN, LEFT, RIGHT for navigation'
         else
-            echo -n 'Input mode ON: Press Enter to switch to Nav mode'
+            echo 'Input mode ON: Press Enter to switch to Nav mode'
         fi
         tput el; tput cud1 && tput el
         tput home ; tput cud ${DROP} ; tput ed
@@ -394,6 +394,15 @@ display() {
         tail -n 1 ${DELIVERY}
         tail -n 1 ${LASTACT_LOG}
         echo "${PROMPT}"
+        if [ -z "${EXITLOOP}" ]; then
+            echo -n "Input: Press any alphanumeric key..."
+        else
+            tput cnorm
+            cd ${TRUSTLOCAL}    #This is just so that bash autocompletes the typed user names on Tab press
+            read -erp 'Input: ' INPUT
+            cd ${ORIGPWD}
+            tput civis
+        fi
 }
 
 local ESC=$'\e'
@@ -409,36 +418,38 @@ local FILE=${1}
 local PROMPT="${2}"
 local MARGIN='8'
 local SCROLL='2'
-local SHOWINGTILL
+local SHOWINGTILL; local SHOWINGFROM
+local REPAINT='true'
 
 [ ! -e "${FILE}" ] && echo > ${FILE}
 unset INPUT ; unset EXITLOOP
 while [ -z "${INPUT}" ]; do
     while [ -z "${EXITLOOP}" ]; do
-        local WINDOW=$(set -- $(wc -l ${FILE}) && echo $1)
-        [ -z "${SHOWINGTILL}" ] && SHOWINGTILL=${WINDOW}
-        local DROP=$(($(tput lines) - ${MARGIN}))
-        tput clear
-        awk "NR==$((${SHOWINGTILL}-${DROP})),NR==${SHOWINGTILL}" "${FILE}"
-        display
-        echo -n "Input: Press any alphanumeric key..."
+        if [ -n "${REPAINT}" ]; then
+            local WINDOW=$(set -- $(wc -l ${FILE}) && echo $1)
+            [ -z "${SHOWINGTILL}" ] && SHOWINGTILL=${WINDOW}
+            local DROP=$(($(tput lines) - ${MARGIN}))
+            tput clear ; tput cud 2
+            SHOWINGFROM=$((${SHOWINGTILL}-${DROP} + 2))
+            if ((${SHOWINGFROM} < 1)); then SHOWINGFROM='1'; fi
+            awk "NR==${SHOWINGFROM},NR==${SHOWINGTILL}" "${FILE}"
+            display
+            REPAINT=''
+        fi
         read -srt ${DELAY} -n 1 EXITLOOP && read -srt0.001 TRAILING
     done
     if [ ${EXITLOOP} == ${ESC} ]; then 
         case ${EXITLOOP}${TRAILING} in
-            ${UP} ) SHOWINGTILL=$((${SHOWINGTILL} - ${SCROLL})) ;;
-            ${DOWN} ) (( ${SHOWINGTILL} + ${SCROLL} <= ${WINDOW} )) && SHOWINGTILL=${SHOWINGTILL}+${SCROLL} ;;
+            ${UP} ) SHOWINGTILL=$((${SHOWINGTILL} - ${SCROLL}))
+                    REPAINT='true' ;;
+            ${DOWN} ) (( ${SHOWINGTILL} + ${SCROLL} <= ${WINDOW} )) && SHOWINGTILL=${SHOWINGTILL}+${SCROLL}
+                    REPAINT='true' ;;
             ${RIGHT} ) return 2 ;;
             ${LEFT} ) return 3 ;;
             * ) return 1 ;;
         esac
     else
     display
-    tput cnorm
-    cd ${TRUSTLOCAL}    #This is just so that bash autocompletes the typed user names on Tab press
-    read -erp 'Input: ' INPUT
-    cd ${ORIGPWD}
-    tput civis
     fi
     unset EXITLOOP
 done
