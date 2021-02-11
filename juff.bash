@@ -137,8 +137,8 @@ else
         tail -n 1 "${DELIVERY}"
     fi
     
-    gpg --no-default-keyring --keyring "${SELFKEYRING}" \
-    --keyid-format long -k ${SELF} | awk NR==2 | read SELFKEYID 
+    SELFKEYID=$(gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+                --keyid-format long -k ${SELF} | awk NR==2)
     
     if [ -n "${SELFKEYID}" ]; then
         echo ${SELFKEYID} >> ${PASSWDFILE}
