@@ -12,8 +12,9 @@ declare -rg BOLD=`tput bold`
 declare -rg UNDERLINE=`tput smul`
 declare -rg BELL=`tput bel`
 
-declare -rg REMOTE='https://github.com/SomajitDey/juff.git' #Use ssh instead of https for faster git push
-declare -rg BRANCH='juff-test'
+declare -rg REMOTE='https://SomajitDey:40e3082645bd4af1d0586f0f9090fb343980c579@github.com/JuFF-GitHub/JuFF---Just-For-Fun.git'
+#Use ssh instead of https for faster git push
+declare -rg BRANCH='test'
 declare -rg INBOX=${HOME}'/Inbox_JuFF'
 declare -rg REPO=${INBOX}'/.git'
 declare -rg LATEST=${INBOX}'/.all.txt'
@@ -39,7 +40,6 @@ declare -rg EXPORT_PUB=${GPGHOME}'/pubkey.asc'
 declare -rg PASSWDFILE=${GPGHOME}'/passphrase.txt'
 declare -rg TMPKEYRING=${GPGHOME}'/corr.kbx'
 declare -rg ORIGPWD=${PWD}
-declare -rg GITHUBPAT=${TRUSTLOCAL}'/access_token.txt'
 declare -rg MAILINGLIST='somajit@users.sourceforge.net'
 declare -g GPGPASSWD
 declare -g SELFKEYID
@@ -86,7 +86,6 @@ if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     read -p 'Enter your emailid (this will be verified): ' RESPONSE
     set -- ${RESPONSE}
     git config --local user.email ${1}
-    git config credential.helper store --file=${GITHUBPAT}
 else
     trustpull &
     local TOREGISTER
