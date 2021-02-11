@@ -417,7 +417,7 @@ display() {
         else
             tput cnorm
             cd ${TRUSTLOCAL}    #This is just so that bash autocompletes the typed user names on Tab press
-            read -erp 'Input: ' INPUT
+            read -ep 'Input: ' INPUT
             cd ${ORIGPWD}
             tput civis
         fi
