@@ -67,7 +67,7 @@ mkdir -p ${DOWNLOADS}
 mkdir -p ${LOGS}
 mkdir -p ${DLQUEUE}
 mkdir -p ${GPGHOME}
-mkdir -p ${BUFFERGARB}
+mkdir -p ${BUFFERGARB} ; mkdir -p ${BUFFERSENSE}
 echo >> ${PUSH_LOG}
 echo >> ${NOTIFICATION}
 echo >> ${DELIVERY}
@@ -192,7 +192,12 @@ git restore -q --source="${COMMIT}" "${KEYOF}*"
 for FILES in ${KEYOF}* ; do
     gpg --no-default-keyring --keyring "${TMPKEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --import "${FILES}" || echo 'Key import failed'
+    --import "${FILES}"
+    if [ ${?} == '0' ]; then 
+        echo 'Key import succeeded'
+    else
+        echo 'Key import failed'
+    fi
 done
 fi
 cd ${OLDPWD}
@@ -240,17 +245,19 @@ get() {
 for FILE in $(ls "${DLQUEUE}") ; do
     rm -f "${GARBTXT}" "${SENSETXT}" "${BUFFERGARB}/*" "${BUFFERSENSE}/*"  #Precautionary cleanup
     local EXT=$(echo ${FILE} | grep -o [.][txt,dl]*$)
-    local FROM=`echo ${FILE##*/} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
+    local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
     gpg --no-default-keyring --keyring "${SELFKEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust --no-tty \
-    -o "${SENSETXT}" -d "${FILE}" || { echo 'URL decryption failed' && continue ;}
+    -o "${SENSETXT}" -d "${DLQUEUE}/${FILE}" || { echo 'URL decryption failed' && continue ;}
     case ${EXT} in
     .txt)
         echo Trying text download...
         local CHAT=${INBOX}'/'${FROM}'.txt'
         xargs curl -sf -o "${GARBTXT}" < ${SENSETXT}
         if [ ${?} == '0' ]; then
+            rm "${DLQUEUE}/${FILE}"
+            timestamp ${BLUE}'Text received from '${RED}${FROM}
             rm ${SENSETXT}  #i.e. resetting for next output
             gpg --no-default-keyring --keyring "${SELFKEYRING}" \
             --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
@@ -258,8 +265,6 @@ for FILE in $(ls "${DLQUEUE}") ; do
             -o "${SENSETXT}" -d "${GARBTXT}" || { echo 'Text decryption failed' && continue ;}
             (cat "${SENSETXT}" && echo) | tee -a ${LATEST} >> ${CHAT} && rm "${SENSETXT}"
             whiteline "${BLUE}------${MAGENTA}from ${BOLD}${RED}${FROM}${NORMAL}"$'\n' >> ${LATEST}
-            timestamp ${BLUE}'Text received from '${RED}${FROM}
-            rm ${FILE}
         else
             timestamp "${RED}Download failed. Will retry again."
         fi
@@ -270,8 +275,8 @@ for FILE in $(ls "${DLQUEUE}") ; do
         echo Trying file download...
         local DOWNLOADED=`xargs curl -sfw %{filename_effective}'\n' < ${SENSETXT}`
         if [ ${?} == 0 ]; then 
+            rm "${DLQUEUE}/${FILE}"
             timestamp "${BLUE}File received from ${RED}${FROM}"
-            rm ${FILE}
             local BUFFEREDFILE=${BUFFERSENSE}${DOWNLOADED##*/}
             gpg --no-default-keyring --keyring "${SELFKEYRING}" \
             --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
