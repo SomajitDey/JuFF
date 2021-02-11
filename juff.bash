@@ -107,6 +107,7 @@ if [ -f "${SELFKEYRING}" ] && [ -f "${PASSWDFILE}" ]; then
 elif [ -f "${PORT}" ]; then
     echo "Extracting keys from ${PORT##*/}..."
     tar -xzf ${PORT} --directory ${INBOX}
+    { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE}
 else
     echo "Creating your credentials..."
     local SEC_HASH="$(echo ${EPOCHSECONDS}${SELF}${SECONDS} | sha256sum)"
