@@ -24,7 +24,10 @@ declare -rg LASTACT_LOG=${LOGS}'/lastaction.log'
 declare -rg NOTIFICATION=${LOGS}'/notification.log'
 declare -rg DELIVERY=${LOGS}'/delivery.log'
 declare -rg DLQUEUE=${INBOX}'/.dlqueue'
-declare -rg BUFFER=${INBOX}'/.buffer.txt'
+declare -rg BUFFERGARB='/tmp/.JuFF'
+declare -rg BUFFERSENSE=${INBOX}'/.buffer'
+declare -rg SENSETXT=${BUFFERSENSE}'/text.txt'
+declare -rg GARBTXT=${BUFFERGARB}'/text.txt'
 declare -rg TRUSTREMOTE='https://github.com/SomajitDey/JuFF-KeyServer.git'
 #This is a github repo where the maintainer stores files with pubkeys from verified accounts
 declare -rg TRUSTLOCAL=${INBOX}'/.trustcentre'
@@ -51,6 +54,12 @@ timestamp() {
   date +${GREEN}%c" ${1}${NORMAL}"
 }
 
+trustpull() {
+cd ${TRUSTLOCAL}
+git pull -q origin main || echo 'Pulling from key-server failed'
+cd ${OLDPWD}
+} >> ${NOTIFICATION}
+
 config() {
 echo "Configuring ..."
 mkdir -p ${INBOX}
@@ -58,6 +67,7 @@ mkdir -p ${DOWNLOADS}
 mkdir -p ${LOGS}
 mkdir -p ${DLQUEUE}
 mkdir -p ${GPGHOME}
+mkdir -p ${BUFFERGARB}
 echo >> ${PUSH_LOG}
 echo >> ${NOTIFICATION}
 echo >> ${DELIVERY}
@@ -78,6 +88,8 @@ if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     git config --local user.email ${1}
     git config --local credential.helper store --file=${GITHUBPAT}
 else
+    local TOREGISTER
+    trustpull
     cd ${REPO}
 fi
 
@@ -85,33 +97,33 @@ declare -rg SELF_NAME=`git config --local user.name`
 declare -rg SELF_EMAIL=`git config --local user.email`
 declare -rg SELF=${SELF_NAME}'#'${SELF_EMAIL}
 declare -rg GITBOX=${REPO}'/'${SELF}
-declare -rg VERIFIED_SELF=${TRUSTLOCAL}'/${SELF}'   #Contains pubkey (verified through mail) signed by admin
+declare -rg VERIFIED_SELF=${TRUSTLOCAL}'/'${SELF}   #Contains pubkey (verified through mail) signed by admin
 declare -rg ABOUT=${GITBOX}'/about.txt'
 
 key() {
 #One can encrypt this PASSWDFILE with a memorable password/PIN which will then become the juff passwd
-if [ ( -f "${SELFKEYRING}" ) && ( -f "${PASSWDFILE}" ) ]; then 
+if [ -f "${SELFKEYRING}" ] && [ -f "${PASSWDFILE}" ]; then 
     { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE}
 elif [ -f "${PORT}" ]; then
     tar -xzf ${PORT} --directory ${INBOX}
 else
     echo "Creating your credentials..."
-    local SEC_HASH="$(echo ${EPOCHSECONDS}${SELF} | sha256sum)"
+    local SEC_HASH="$(echo ${EPOCHSECONDS}${SELF}${SECONDS} | sha256sum)"
     set -- ${SEC_HASH}
     GPGPASSWD=${1}
 
     echo ${GPGPASSWD} > ${PASSWDFILE} || echo 'Passphrase creation failed'
 
-    gpg --no-default-keyring --keyring ${SELFKEYRING} \
-    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --quick-gen-key ${SELF} || echo 'Key creation failed'
     
-    gpg --no-default-keyring --keyring ${SELFKEYRING} \
-    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --armor --output ${EXPORT_PUB} --export ${SELF} || echo 'Public key export failed'
 
-    gpg --no-default-keyring --keyring ${SELFKEYRING} \
-    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --armor --output ${EXPORT_SEC} --export-secret-keys ${SELF} || echo 'Secure key export failed'
     
     cd ${INBOX} ; tar -cvzf ${PORT} .gnupg ; cd ${OLDPWD}
@@ -123,13 +135,13 @@ else
         tail -n 1 "${DELIVERY}"
     fi
     
-    gpg --no-default-keyring --keyring ${SELFKEYRING} \
+    gpg --no-default-keyring --keyring "${SELFKEYRING}" \
     --keyid-format long -k ${SELF} | awk NR==2 | read SELFKEYID 
     
     if [ -n "${SELFKEYID}" ]; then
         echo ${SELFKEYID} > ${PASSWDFILE}
         echo "Your key id is: "
-        echo ${YELLOW}${SELFKEYID}${NORMAL})
+        echo ${YELLOW}${SELFKEYID}${NORMAL}
         echo "Now email this key id to ${MAILINGLIST} from ${SELF_EMAIL} to complete your registration"
         [ "${PUSHOK}" != 'true' ] && echo "Also attach ${EXPORT_PUB} with your mail. Thank you."
         echo "Once verification is done you will receive a message both here and at ${SELF_EMAIL}"
@@ -168,12 +180,6 @@ else
 fi
 }
 
-trustpull() {
-cd ${TRUSTLOCAL}
-git -q pull origin main || echo 'Pulling from key-server failed'
-cd ${OLDPWD}
-} >> ${NOTIFICATION}
-
 keyretrieve() {
 local KEYOF=${1}
 local BEFORE=${2}
@@ -181,12 +187,14 @@ cd ${TRUSTLOCAL}
 local COMMIT=$(git log --name-only --pretty=format:%H --before=${BEFORE} -1 | awk NR==1)
 
 #The idea is that any new public key will always be accompanied with revocation cert of the previous key
+if [ -n "${COMMIT}" ]; then
 git restore -q --source="${COMMIT}" "${KEYOF}*"
 for FILES in ${KEYOF}* ; do
-    gpg --no-default-keyring --keyring ${SELFKEYRING} \
-    --batch -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --import ${SELF} || echo 'Key import failed'
+    gpg --no-default-keyring --keyring "${TMPKEYRING}" \
+    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --import "${FILES}" || echo 'Key import failed'
 done
+fi
 cd ${OLDPWD}
 } >> ${NOTIFICATION}
 
@@ -212,7 +220,7 @@ local COMMIT
     for LINE in $(git log --name-only --pretty=format:%H last.. -- "${GITBOX}"); do
         if [ "${LINE}" == "${LINE##*/}" ]; then
             COMMIT="${LINE}"
-        else
+        elif [ "${LINE##*/}" != 'about.txt' ]; then
             ln -t ${DLQUEUE} ${LINE} > /dev/null 2>&1 && continue
             git restore -q --source="${COMMIT}" "${LINE}" && ln -t ${DLQUEUE} ${LINE} && \
             rm "${LINE}"
@@ -229,16 +237,26 @@ git pull -q --ff-only origin "${BRANCH}" > /dev/null 2>&1
 } >> ${NOTIFICATION}
 
 get() {
-for FILE in ${DLQUEUE}/* ; do
+for FILE in $(ls "${DLQUEUE}") ; do
+    rm -f "${GARBTXT}" "${SENSETXT}" "${BUFFERGARB}/*" "${BUFFERSENSE}/*"  #Precautionary cleanup
     local EXT=$(echo ${FILE} | grep -o [.][txt,dl]*$)
     local FROM=`echo ${FILE##*/} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
+    gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --always-trust --no-tty \
+    -o "${SENSETXT}" -d "${FILE}" || { echo 'URL decryption failed' && continue ;}
     case ${EXT} in
     .txt)
         echo Trying text download...
         local CHAT=${INBOX}'/'${FROM}'.txt'
-        xargs curl -sf -o "${BUFFER}" < ${FILE}
+        xargs curl -sf -o "${GARBTXT}" < ${SENSETXT}
         if [ ${?} == '0' ]; then
-            (cat "${BUFFER}" && echo) | tee -a ${LATEST} >> ${CHAT} && rm "${BUFFER}"
+            rm ${SENSETXT}  #i.e. resetting for next output
+            gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+            --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+            --always-trust \
+            -o "${SENSETXT}" -d "${GARBTXT}" || { echo 'Text decryption failed' && continue ;}
+            (cat "${SENSETXT}" && echo) | tee -a ${LATEST} >> ${CHAT} && rm "${SENSETXT}"
             whiteline "${BLUE}------${MAGENTA}from ${BOLD}${RED}${FROM}${NORMAL}"$'\n' >> ${LATEST}
             timestamp ${BLUE}'Text received from '${RED}${FROM}
             rm ${FILE}
@@ -247,14 +265,19 @@ for FILE in ${DLQUEUE}/* ; do
         fi
         ;;
     .dl)
-        echo Trying file download...
-        local DOWNLOADED=`xargs curl -sfw %{filename_effective}'\n' < ${FILE}`
         local DIR="${DOWNLOADS}/${FROM}/"
         mkdir -p "${DIR}"
-        [ -e "${DOWNLOADED}" ] && mv --backup=numbered "${DOWNLOADED}" "${DIR}"
+        echo Trying file download...
+        local DOWNLOADED=`xargs curl -sfw %{filename_effective}'\n' < ${SENSETXT}`
         if [ ${?} == 0 ]; then 
             timestamp "${BLUE}File received from ${RED}${FROM}"
             rm ${FILE}
+            local BUFFEREDFILE=${BUFFERSENSE}${DOWNLOADED##*/}
+            gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+            --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+            --always-trust \
+            -o "${BUFFEREDFILE}" -d "${DOWNLOADED}" || { echo 'File decryption failed' && continue ;}
+            [ -e "${BUFFEREDFILE}" ] && mv --backup=numbered "${BUFFEREDFILE}" "${DIR}"
         else
             timestamp "${RED}Download failed. Will retry again."
         fi
@@ -278,6 +301,7 @@ fi
 until [ ${COUNT} == ${ITERATION} ] ; do
     pull
     push
+    trustpull
     queue
     get
     [ "${PUSHOK}"=='true' ] && ((COUNT++))
@@ -294,11 +318,20 @@ quit() {
 }
 
 post() {
+local CACHETXT='/tmp/readmeifucan.juff'
+local CACHEDL='/tmp/viewmeifucan.juff'
+local CACHEUL=${INBOX}'/.ul.txt'
+rm -f "${CACHETXT}" "${CACHEDL}" "${CACHEUL}"  #Precautionary cleanup
 
 card() {
 
 local BLOB=${POSTBOX}'/'${FROM}'#'${EPOCHSECONDS}${2}
-echo -e ${1} > ${BLOB}
+echo -e "${1}" > "${CACHEUL}"
+gpg --no-default-keyring --keyring "${TMPKEYRING}" \
+--batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+--always-trust -r "${TO}" \
+-o "${BLOB}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
+
 }
 
 local FROM=${SELF}
@@ -308,22 +341,33 @@ local TEXT
 
 [ ! -d "${POSTBOX}" ] && echo ${RED}"ERROR: ${POSTBOX} could not be found. Sending failed."${NORMAL} && return 1
 echo 'Posting...'
+keyretrieve "${TO}" "${EPOCHSECONDS}"
 
 if [ -f "${2}" ]; then
-    local URL=`curl -sfF "file=@${2}" https://file.io/?expires=2 | grep -o "https://file.io/[A-Za-z0-9]*"`
+    gpg --no-default-keyring --keyring "${TMPKEYRING}" \
+    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --always-trust -r "${TO}" \
+    -o "${CACHEDL}" -e "${2}" || { echo 'File encryption failed' && return 1 ;}
+    
+    local URL=`curl -sfF "file=@${CACHEDL}" https://file.io/?expires=2 | grep -o "https://file.io/[A-Za-z0-9]*"`
     if [ -z "${URL}" ]; then 
         echo ${RED}"ERROR: File upload failed. Check internet connectivity."${NORMAL}
         return 2
     fi
-    card "${URL} -o /tmp/${2##*/}" ".dl"
+    card "${URL} -o ${BUFFERGARB}/${2##*/}" ".dl"
     TEXT=${RED}${FROM}${CYAN}$'\n'' sent you '$'\t'${2##*/}${NORMAL}
 else
     TEXT=${CYAN}${2}${NORMAL}$'\n'
 fi
 
-local URL=`curl -s --data "text=${TEXT}" https://file.io | grep -o "https://file.io/[A-Za-z0-9]*"`
+echo "${TEXT}" > "${CACHEUL}"
+gpg --no-default-keyring --keyring "${TMPKEYRING}" \
+--batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+--always-trust -r "${TO}" \
+-o "${CACHETXT}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
+local URL=`curl -s --data "text=${CACHETXT}" https://file.io | grep -o "https://file.io/[A-Za-z0-9]*"`
 [ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity."${NORMAL} && return 3
-card ${URL} .txt
+card "${URL}" ".txt"
 local CHAT=${INBOX}'/'${TO}'.txt'
 echo -e ${2}$'\n' >> ${CHAT}
 echo ${GREEN}'Message posted for delivery. To be delivered on next push.'${NORMAL}
@@ -385,7 +429,9 @@ while [ -z "${INPUT}" ]; do
     else
     display
     tput cnorm
+    cd ${TRUSTLOCAL}    #This is just so that bash autocompletes the typed user names on Tab press
     read -erp 'Input: ' INPUT
+    cd ${ORIGPWD}
     tput civis
     fi
     unset EXITLOOP
@@ -396,7 +442,7 @@ return 0
 
 backend() {
 if [ ${PAGE} == '1' ]; then
-    if [ ! -d "${REPO}/.${CORRESPONDENT}" ]; then
+    if [ ! -d "${REPO}/${CORRESPONDENT}" ]; then
         echo ${RED}'Recipient could not be found.'${NORMAL}
         unset CORRESPONDENT
     else
@@ -450,7 +496,7 @@ done
 
 readonly_globals
 config
-trustpull
+rm -f "${TMPKEYRING}"
 CORRESPONDENT=${1}
 MESSAGE=${2}
 if [ -n "${MESSAGE}" ]; then
