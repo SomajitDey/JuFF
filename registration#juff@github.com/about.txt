@@ -1,2 +1,0 @@
-This is the registration box for juff.
-This is where the pubkeys are initially submitted by juff-daemon.
