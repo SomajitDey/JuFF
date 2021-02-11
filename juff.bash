@@ -88,8 +88,8 @@ if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     git config --local user.email ${1}
     git config --local credential.helper store --file=${GITHUBPAT}
 else
+    trustpull &
     local TOREGISTER
-    trustpull
     cd ${REPO}
 fi
 
@@ -305,9 +305,9 @@ else
     ITERATION=$((${COUNT} - 1))
 fi
 until [ ${COUNT} == ${ITERATION} ] ; do
+    trustpull & #Should we wait for this...isn't this as fast or faster than the next pull
     pull
     push
-    trustpull
     queue
     get
     [ "${PUSHOK}"=='true' ] && ((COUNT++))
