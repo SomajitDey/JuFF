@@ -392,11 +392,12 @@ logwatch() {
             fi
         fi
     fi
-    REPAINT='true'
+    NOTIFY='true'
     touch "${TIMEREF}"
 }
 
 display() {
+        [ -z "${NOTIFY}" ] && [ -z "${REPAINT}" ] && return
         tput home
         if [ -z "${EXITLOOP}" ]; then
             echo 'Nav mode ON: Esc = quit or go back ; UP, DOWN, LEFT, RIGHT for navigation'
@@ -419,6 +420,7 @@ display() {
             cd ${ORIGPWD}
             tput civis
         fi
+        NOTIFY=''
 }
 
 local ESC=$'\e'
@@ -438,6 +440,7 @@ local SHOWINGTILL; local SHOWINGFROM
 local REPAINT='true'
 touch "${TIMEREF}"
 trap "REPAINT='true'" SIGWINCH
+local NOTIFY='true'
 
 [ ! -e "${FILE}" ] && echo > ${FILE}
 unset INPUT ; unset EXITLOOP
@@ -452,10 +455,10 @@ while [ -z "${INPUT}" ]; do
             SHOWINGFROM=$((${SHOWINGTILL}-${DROP} + 2))
             if ((${SHOWINGFROM} < 1)); then SHOWINGFROM='1'; fi
             awk "NR==${SHOWINGFROM},NR==${SHOWINGTILL}" "${FILE}"
-            display
-            REPAINT=''
         fi
+        display
         read -srt ${DELAY} -n 1 EXITLOOP && read -srt0.001 TRAILING
+        REPAINT=''
     done
     if [ ${EXITLOOP} == ${ESC} ]; then 
         case ${EXITLOOP}${TRAILING} in
@@ -468,9 +471,9 @@ while [ -z "${INPUT}" ]; do
             * ) return 1 ;;
         esac
     else
-    display
+        NOTIFY='true' && display
     fi
-    unset EXITLOOP
+    EXITLOOP=''
 done
 return 0
 
