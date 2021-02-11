@@ -86,7 +86,7 @@ if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     read -p 'Enter your emailid (this will be verified): ' RESPONSE
     set -- ${RESPONSE}
     git config --local user.email ${1}
-    git config --local credential.helper store --file=${GITHUBPAT}
+    git config credential.helper store --file=${GITHUBPAT}
 else
     trustpull &
     local TOREGISTER
@@ -116,15 +116,15 @@ else
     echo ${GPGPASSWD} > ${PASSWDFILE} || echo 'Passphrase creation failed'
 
     gpg --no-default-keyring --keyring "${SELFKEYRING}" \
-    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --batch --no-tty --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --quick-gen-key ${SELF} || echo 'Key creation failed'
     
     gpg --no-default-keyring --keyring "${SELFKEYRING}" \
-    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --batch --no-tty --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --armor --output ${EXPORT_PUB} --export ${SELF} || echo 'Public key export failed'
 
     gpg --no-default-keyring --keyring "${SELFKEYRING}" \
-    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --batch --no-tty --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --armor --output ${EXPORT_SEC} --export-secret-keys ${SELF} || echo 'Secure key export failed'
     
     cd ${INBOX} ; tar -cvzf ${PORT} .gnupg ; cd ${OLDPWD}
