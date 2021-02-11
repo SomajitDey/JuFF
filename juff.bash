@@ -206,13 +206,14 @@ cd ${OLDPWD}
 } >> ${NOTIFICATION}
 
 push() {
-declare -g PUSHOK='true'
+declare -g PUSHOK=''
     git add --all > /dev/null 2>&1
     if ! git diff --quiet HEAD; then
         { git commit -qm 'by juff-daemon' && git push -q origin "${BRANCH}" ;} > /dev/null 2>&1
         if [ ${?} == '0' ]; then
             timestamp "${GREEN}Push successful"
             echo ${YELLOW}'Delivered!'${NORMAL} > "${DELIVERY}"
+            PUSHOK='true'
         else
             PUSHOK='false'
             timestamp "${RED}Push failed. Maybe becoz pull is required or maybe there's no net"
