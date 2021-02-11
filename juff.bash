@@ -138,7 +138,7 @@ else
     fi
     
     SELFKEYID=$(gpg --no-default-keyring --keyring "${SELFKEYRING}" \
-                --keyid-format long -k ${SELF} | awk NR==2)
+                --no-auto-check-trustdb --keyid-format long -k ${SELF} | awk NR==2)
     
     if [ -n "${SELFKEYID}" ]; then
         echo ${SELFKEYID} >> ${PASSWDFILE}
