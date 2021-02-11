@@ -380,6 +380,22 @@ echo ${GREEN}'Message posted for delivery. To be delivered on next push.'${NORMA
 }
 
 frontend() {
+
+local TIMEREF='/tmp/juff.time'
+logwatch() {
+    if [ "${PUSH_LOG}" -ot "${TIMEREF}" ]; then 
+        if [ "${NOTIFICATION}" -ot "${TIMEREF}" ]; then
+            if [ "${DELIVERY}" -ot "${TIMEREF}" ]; then
+                if [ "${LASTACT_LOG}" -ot "${TIMEREF}" ]; then
+                    touch "${TIMEREF}" ; return
+                fi
+            fi
+        fi
+    fi
+    REPAINT='true'
+    touch "${TIMEREF}"
+}
+
 display() {
         tput home
         if [ -z "${EXITLOOP}" ]; then
@@ -420,11 +436,14 @@ local MARGIN='8'
 local SCROLL='2'
 local SHOWINGTILL; local SHOWINGFROM
 local REPAINT='true'
+touch "${TIMEREF}"
+trap "REPAINT='true'" SIGWINCH
 
 [ ! -e "${FILE}" ] && echo > ${FILE}
 unset INPUT ; unset EXITLOOP
 while [ -z "${INPUT}" ]; do
     while [ -z "${EXITLOOP}" ]; do
+        logwatch
         if [ -n "${REPAINT}" ]; then
             local WINDOW=$(set -- $(wc -l ${FILE}) && echo $1)
             [ -z "${SHOWINGTILL}" ] && SHOWINGTILL=${WINDOW}
