@@ -105,6 +105,7 @@ key() {
 if [ -f "${SELFKEYRING}" ] && [ -f "${PASSWDFILE}" ]; then 
     { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE}
 elif [ -f "${PORT}" ]; then
+    echo "Extracting keys from ${PORT##*/}..."
     tar -xzf ${PORT} --directory ${INBOX}
 else
     echo "Creating your credentials..."
@@ -139,7 +140,7 @@ else
     --keyid-format long -k ${SELF} | awk NR==2 | read SELFKEYID 
     
     if [ -n "${SELFKEYID}" ]; then
-        echo ${SELFKEYID} > ${PASSWDFILE}
+        echo ${SELFKEYID} >> ${PASSWDFILE}
         echo "Your key id is: "
         echo ${YELLOW}${SELFKEYID}${NORMAL}
         echo "Now email this key id to ${MAILINGLIST} from ${SELF_EMAIL} to complete your registration"
