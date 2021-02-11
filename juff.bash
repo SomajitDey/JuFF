@@ -278,7 +278,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
         if [ ${?} == 0 ]; then 
             rm "${DLQUEUE}/${FILE}"
             timestamp "${BLUE}File received from ${RED}${FROM}"
-            local BUFFEREDFILE=${BUFFERSENSE}${DOWNLOADED##*/}
+            local BUFFEREDFILE=${BUFFERSENSE}'/'${DOWNLOADED##*/}
             gpg --no-default-keyring --keyring "${SELFKEYRING}" \
             --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
             --always-trust \
@@ -371,7 +371,7 @@ gpg --no-default-keyring --keyring "${TMPKEYRING}" \
 --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
 --always-trust -r "${TO}" \
 -o "${CACHETXT}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
-local URL=`curl -s --data "text=${CACHETXT}" https://file.io | grep -o "https://file.io/[A-Za-z0-9]*"`
+local URL=`curl -sfF "file=@${CACHETXT}" https://file.io | grep -o "https://file.io/[A-Za-z0-9]*"`
 [ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity."${NORMAL} && return 3
 card "${URL}" ".txt"
 local CHAT=${INBOX}'/'${TO}'.txt'
