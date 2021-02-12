@@ -113,7 +113,7 @@ declare -rg GITBOX=${REPO}'/'${SELF}
 declare -rg VERIFIED_SELF=${TRUSTLOCAL}'/'${SELF}   #Contains pubkey (verified through mail) signed by admin
 declare -rg ABOUT=${GITBOX}'/about.txt'
 
-echo "Welcome ${SELF}" ; sleep 2
+echo "Welcome ${SELF}"
 
 key() {
 #One can encrypt this PASSWDFILE with a memorable password/PIN which will then become the juff passwd
@@ -219,9 +219,12 @@ cd ${TRUSTLOCAL}
 local COMMIT=$(git log --name-only --pretty=format:%H --before=${BEFORE} -1 | awk NR==1)
 
 #The idea is that any new public key will always be accompanied with revocation cert of the previous key
+#Hence the star/glob below...but perhaps juff doesn't need a revocation cert bcoz of the way it operates
 if [ -n "${COMMIT}" ]; then
-git restore -q --source="${COMMIT}" "${KEYOF}*"
-for FILES in ${KEYOF}* ; do
+#git restore -q --source="${COMMIT}" "${KEYOF}*"
+git restore -q --source="${COMMIT}" "${KEYOF}"
+#for FILES in ${KEYOF}* ; do
+local FILES="${KEYOF}"
     $gpg --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --import "${FILES}"
@@ -230,7 +233,7 @@ for FILES in ${KEYOF}* ; do
     else
         echo 'Key import failed'
     fi
-done
+#done
 fi
 cd ${OLDPWD}
 } >> ${NOTIFICATION}
