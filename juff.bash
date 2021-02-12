@@ -437,6 +437,9 @@ display() {
             tput cnorm
             cd ${TRUSTLOCAL}    #This is just so that bash autocompletes the typed user names on Tab press
             read -ep 'Input: ' INPUT
+            local TMP
+            [ "${INPUT%%/*}" == '~' ] && TMP="${HOME}/${INPUT#*/}" && [ -f "${TMP}" ] && INPUT="${TMP}"
+            unset TMP
             cd ${ORIGPWD}
             tput civis
         fi
