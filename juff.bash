@@ -391,8 +391,8 @@ if [ -f "${2}" ]; then
     --always-trust -r "${TO}" \
     -o "${CACHEDL}" -e "${2}" || { echo 'File encryption failed' && return 1 ;}
     
-    local URL=$(curl -sfF "file=@${CACHEDL}" https://file.io | grep -o "https://file.io/[A-Za-z0-9]*") \
-    || local URL=$(curl -sfF "file=@${CACHEDL}" https://0x0.st | grep -o "https://0x0.st/[A-Za-z0-9]*")
+    local URL=$(curl -sfF "file=@${CACHEDL}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*") \
+    || local URL=$(curl -sfF "file=@${CACHEDL}" --no-epsv https://0x0.st | grep -o "https://0x0.st/[A-Za-z0-9]*")
     if [ -z "${URL}" ]; then 
         echo ${RED}"ERROR: File upload failed. Check internet connectivity."${NORMAL}
         return 2
@@ -408,8 +408,8 @@ $gpg --no-default-keyring --keyring "${KEYRING}" \
 --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
 --always-trust -r "${TO}" \
 -o "${CACHETXT}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
-local URL=$(curl -sfF "file=@${CACHETXT}" https://file.io | grep -o "https://file.io/[A-Za-z0-9]*") \
-|| local URL=$(curl -sfF "file=@${CACHETXT}" https://0x0.st | grep -o "https://0x0.st/[A-Za-z0-9]*")
+local URL=$(curl -sfF "file=@${CACHETXT}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*") \
+|| local URL=$(curl -sfF "file=@${CACHETXT}" --no-epsv https://0x0.st | grep -o "https://0x0.st/[A-Za-z0-9]*")
 [ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity."${NORMAL} && return 3
 card "${URL}" ".txt"
 local CHAT=${INBOX}'/'${TO}'.txt'
