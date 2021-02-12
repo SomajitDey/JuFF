@@ -79,7 +79,6 @@ mkdir -p ${INBOX}
 mkdir -p ${DOWNLOADS}
 mkdir -p ${LOGS}
 mkdir -p ${DLQUEUE}
-mkdir -p ${GPGHOME}
 mkdir -p ${BUFFERGARB} ; mkdir -p ${BUFFERSENSE}
 echo >> ${PUSH_LOG}
 echo >> ${NOTIFICATION}
@@ -116,8 +115,8 @@ echo "Welcome ${SELF}"
 
 key() {
 #One can encrypt this PASSWDFILE with a memorable password/PIN which will then become the juff passwd
+rm -rf "${GPGHOME}"
 if [ -f "${PORT}" ]; then
-    rm -rf "${GPGHOME}"
     echo "Extracting keys from ${PORT##*/}..."
     tar -xzf ${PORT} --directory ${INBOX}
     local FLAG='false'
@@ -137,21 +136,23 @@ else
     echo 'If you already have a key, close this with Ctrl + C and relaunch after installing the key as' ${PORT}
     read
     echo "Creating new credentials..."
+    mkdir -p ${GPGHOME}
+    touch "${KEYRING}"
     local SEC_HASH="$(echo ${EPOCHSECONDS}${SELF}${SECONDS} | sha256sum)"
     set -- ${SEC_HASH}
     GPGPASSWD=${1}
 
     echo ${GPGPASSWD} > ${PASSWDFILE} || echo 'Passphrase creation failed'
 
-    $gpg --keyring "${KEYRING}" \
+    $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --no-tty --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --quick-gen-key ${SELF} || echo 'Key creation failed'
     
-    $gpg --keyring "${KEYRING}" \
+    $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --no-tty --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --armor --output ${EXPORT_PUB} --export ${SELF} || echo 'Public key export failed'
 
-    $gpg --keyring "${KEYRING}" \
+    $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --no-tty --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --armor --output ${EXPORT_SEC} --export-secret-keys ${SELF} || echo 'Secure key export failed'
     
@@ -168,7 +169,7 @@ else
         tail -n 1 "${DELIVERY}"
     fi
     
-    SELFKEYID=$($gpg --keyring "${KEYRING}" \
+    SELFKEYID=$($gpg --no-default-keyring --keyring "${KEYRING}" \
                 --no-auto-check-trustdb --keyid-format long -k ${SELF} | awk NR==2)
     
     if [ -n "${SELFKEYID}" ]; then
@@ -225,7 +226,7 @@ if [ -n "${COMMIT}" ]; then
 git restore -q --source="${COMMIT}" "${KEYOF}"
 #for FILES in ${KEYOF}* ; do
 local FILES="${KEYOF}"
-    $gpg --keyring "${KEYRING}" \
+    $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --import "${FILES}"
     if [ ${?} == '0' ]; then 
@@ -282,10 +283,10 @@ for FILE in $(ls "${DLQUEUE}") ; do
     rm -f "${GARBTXT}" "${SENSETXT}" "${BUFFERGARB}/*" "${BUFFERSENSE}/*"  #Precautionary cleanup
     local EXT=$(echo ${FILE} | grep -o [.][txt,dl]*$)
     local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
-    $gpg --keyring "${KEYRING}" \
+    $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust --no-tty \
-    -o "${SENSETXT}" -d "${DLQUEUE}/${FILE}" || { echo 'URL decryption failed' && continue ;}
+    -o "${SENSETXT}" -d "${DLQUEUE}/${FILE}" || { echo 'URL decryption failed' && rm "${FILE}" && continue ;}
     case ${EXT} in
     .txt)
         echo Trying text download...
@@ -295,7 +296,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             rm "${DLQUEUE}/${FILE}"
             timestamp ${BLUE}'Text received from '${RED}${FROM}
             rm ${SENSETXT}  #i.e. resetting for next output
-            $gpg --keyring "${KEYRING}" \
+            $gpg --no-default-keyring --keyring "${KEYRING}" \
             --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
             --always-trust \
             -o "${SENSETXT}" -d "${GARBTXT}" || { echo 'Text decryption failed' && continue ;}
@@ -314,7 +315,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             rm "${DLQUEUE}/${FILE}"
             timestamp "${BLUE}File received from ${RED}${FROM}"
             local BUFFEREDFILE=${BUFFERSENSE}'/'${DOWNLOADED##*/}
-            $gpg --keyring "${KEYRING}" \
+            $gpg --no-default-keyring --keyring "${KEYRING}" \
             --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
             --always-trust \
             -o "${BUFFEREDFILE}" -d "${DOWNLOADED}" || { echo 'File decryption failed' && continue ;}
@@ -368,7 +369,7 @@ card() {
 
 local BLOB=${POSTBOX}'/'${FROM}'#'${EPOCHSECONDS}${2}
 echo -e "${1}" > "${CACHEUL}"
-$gpg --keyring "${KEYRING}" \
+$gpg --no-default-keyring --keyring "${KEYRING}" \
 --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
 --always-trust -r "${TO}" \
 -o "${BLOB}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
@@ -385,7 +386,7 @@ echo 'Posting...'
 keyretrieve "${TO}" "${EPOCHSECONDS}"
 
 if [ -f "${2}" ]; then
-    $gpg --keyring "${KEYRING}" \
+    $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" \
     -o "${CACHEDL}" -e "${2}" || { echo 'File encryption failed' && return 1 ;}
@@ -403,7 +404,7 @@ else
 fi
 
 echo "${TEXT}" > "${CACHEUL}"
-$gpg --keyring "${KEYRING}" \
+$gpg --no-default-keyring --keyring "${KEYRING}" \
 --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
 --always-trust -r "${TO}" \
 -o "${CACHETXT}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
@@ -578,6 +579,8 @@ if [ ! -d "${INBOX}" ]; then
     read -ep 'Type inbox name here: '
     REPLY=${REPLY%/*}
     INBOX=${HOME}'/'${REPLY##*/}
+    echo "Your Inbox is ${INBOX}. Press any key to proceed. Ctrl-c to exit."
+    read -n1
 fi
 echo "Inbox is at ${INBOX}"
 readonly_globals
