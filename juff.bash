@@ -1,3 +1,7 @@
+# https://oshi.at/cmd
+# https://0x0.st/
+# https://file.io
+
 readonly_globals() {
 set -o pipefail
 
