@@ -12,7 +12,7 @@ declare -rg BOLD=`tput bold`
 declare -rg UNDERLINE=`tput smul`
 declare -rg BELL=`tput bel`
 
-declare -rg REMOTE='https://SomajitDey:40e3082645bd4af1d0586f0f9090fb343980c579@github.com/JuFF-GitHub/JuFF---Just-For-Fun.git'
+declare -rg REMOTE='https://github.com/JuFF-GitHub/JuFF---Just-For-Fun.git'
 #Use ssh instead of https for faster git push
 declare -rg BRANCH='test'
 declare -rg INBOX=${HOME}'/Inbox_JuFF'
@@ -80,10 +80,10 @@ if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     cd ${REPO}
     git switch ${BRANCH}
     git branch -u 'origin/'${BRANCH}
-    read -p 'Enter your name without any spaces [you may use _ and .]: ' RESPONSE
+    read -ep 'Enter your name without any spaces [you may use _ and .]: ' RESPONSE
     set -- ${RESPONSE}
     git config --local user.name ${1}
-    read -p 'Enter your emailid (this will be verified): ' RESPONSE
+    read -ep 'Enter your emailid (this will be verified): ' RESPONSE
     set -- ${RESPONSE}
     git config --local user.email ${1}
 else
@@ -431,7 +431,7 @@ local DOWN=${CSI}'B'
 local RIGHT=${CSI}'C'
 local LEFT=${CSI}'D'
 
-local DELAY='1' #This is the refresh time period (to display new message)
+local DELAY='0.1' #This is the refresh time period (to display new message)
 local EXITLOOP ; local TRAILING
 local FILE=${1}
 local PROMPT="${2}"
