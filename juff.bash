@@ -1,6 +1,9 @@
+# Free ephemeral file sharing services:
 # https://oshi.at/cmd
 # https://0x0.st/
 # https://file.io
+
+#TODO: git signing commits and verifying the same. Make export GNUPGHOME=${GPGHOME} for this
 
 readonly_globals() {
 set -o pipefail
