@@ -105,8 +105,8 @@ key() {
 if [ -f "${PORT}" ]; then
     rm -rf "${GPGHOME}"
     echo "Extracting keys from ${PORT##*/}..."
-    [ ! -e "${KEYRING}" ] && echo 'Your JuFF key is broken : No keyring found. Exiting...' && exit
     tar -xzf ${PORT} --directory ${INBOX}
+    [ ! -e "${KEYRING}" ] && echo 'Your JuFF key is broken : No keyring found. Exiting...' && exit
     { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE} || \
     { echo 'Your JuFF key is broken : No passwd/keyid. Exiting...' && exit ;}
     { read REMOTE < ${PATFILE} && git remote set-url --push origin "${REMOTE}" ;} \
