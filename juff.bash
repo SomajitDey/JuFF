@@ -129,8 +129,9 @@ if [ -f "${PORT}" ]; then
     if [ "${FLAG}" == 'true' ]; then
         echo 'Fix the broken key or create a new one.'
         echo "To create a new key, delete ${PORT} and then relaunch me."
-        unset FLAG
+        exit
     fi
+    unset FLAG
 else
     echo 'Press Enter to proceed with the creation of new key.' 
     echo 'If you already have a key, close this with Ctrl + C and relaunch after installing the key as' ${PORT}
