@@ -12,7 +12,7 @@ declare -rg BOLD=`tput bold`
 declare -rg UNDERLINE=`tput smul`
 declare -rg BELL=`tput bel`
 
-declare -rg REMOTE='https://github.com/JuFF-GitHub/JuFF---Just-For-Fun.git'
+declare -g REMOTE='https://github.com/JuFF-GitHub/JuFF---Just-For-Fun.git'
 #Use ssh instead of https for faster git push
 declare -rg BRANCH='test'
 declare -rg INBOX=${HOME}'/Inbox_JuFF'
@@ -38,7 +38,8 @@ declare -rg SELFKEYRING=${GPGHOME}'/self.kbx'
 declare -rg EXPORT_SEC=${GPGHOME}'/privatekey.asc'
 declare -rg EXPORT_PUB=${GPGHOME}'/pubkey.asc'
 declare -rg PASSWDFILE=${GPGHOME}'/passphrase.txt'
-declare -rg TMPKEYRING=${GPGHOME}'/corr.kbx'
+declare -rg PATFILE=${GPGHOME}'/access_token.txt'
+declare -rg TMPKEYRING=${GPGHOME}'/pubring.kbx'
 declare -rg ORIGPWD=${PWD}
 declare -rg MAILINGLIST='somajit@users.sourceforge.net'
 declare -g GPGPASSWD
@@ -101,14 +102,18 @@ declare -rg ABOUT=${GITBOX}'/about.txt'
 
 key() {
 #One can encrypt this PASSWDFILE with a memorable password/PIN which will then become the juff passwd
-if [ -f "${SELFKEYRING}" ] && [ -f "${PASSWDFILE}" ]; then 
-    { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE}
-elif [ -f "${PORT}" ]; then
+if [ -f "${PORT}" ]; then
+    rm -rf "${GPGHOME}"
     echo "Extracting keys from ${PORT##*/}..."
     tar -xzf ${PORT} --directory ${INBOX}
-    { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE}
+    { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE} || echo 'Your JuFF key is broken'
+    { read REMOTE < ${PATFILE} && git remote set-url --push origin "${REMOTE}" ;} \
+    || echo 'Your JuFF key is broken'
 else
-    echo "Creating your credentials..."
+    echo 'Press Enter to proceed with the creation of new key.' 
+    echo 'If you already have a key, close this with Ctrl + C and relaunch after installing the key as' ${PORT}
+    read
+    echo "Creating new credentials..."
     local SEC_HASH="$(echo ${EPOCHSECONDS}${SELF}${SECONDS} | sha256sum)"
     set -- ${SEC_HASH}
     GPGPASSWD=${1}
@@ -127,9 +132,13 @@ else
     --batch --no-tty --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --armor --output ${EXPORT_SEC} --export-secret-keys ${SELF} || echo 'Secure key export failed'
     
-    cd ${INBOX} ; tar -cvzf ${PORT} .gnupg ; cd ${OLDPWD}
-    
     if [ -e ${EXPORT_PUB} ]; then 
+        echo "Ok. Now give me your access token:"
+        local GITHUBPAT
+        read -e GITHUBPAT
+        REMOTE="https://JuFF-GitHub:${GITHUBPAT}@github.com/JuFF-GitHub/JuFF---Just-For-Fun.git"
+        git remote set-url --push origin "${REMOTE}"
+        echo ${REMOTE} > ${PATFILE}
         echo 'Uploading your public key for registration...'
         post "${REGISTRAR}" "${EXPORT_PUB}"
         daemon 1
@@ -148,8 +157,10 @@ else
         echo "Once verification is done you will receive a message both here and at ${SELF_EMAIL}"
         echo ${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"
         echo "See ya then!"
+        cd ${INBOX} ; tar -cvzf ${PORT} .gnupg ; cd ${OLDPWD}
     else
         echo "Key creation failed...something went wrong."
+        echo "Remove ${INBOX} with sudo rm -r ${INBOX} and lanch me again."
     fi
     exit
 fi
@@ -159,10 +170,7 @@ if [ -e "${VERIFIED_SELF}" ]; then
     if [ -n "${TOREGISTER}" ]; then
         echo "${GREEN}This email id is already present and verified.${NORMAL}"
         echo "I have reconfigured the ${INBOX}. ${MAGENTA}What now?${NORMAL}"
-        echo "${BOLD}1)${NORMAL}${BLUE}Create ${PORT} and relaunch me.${NORMAL}"
-        echo "${BOLD}2)${NORMAL}${YELLOW}In case you have lost your JuFF key, "\
-             "email a 'new-key' request to ${MAILINGLIST}${NORMAL}"
-        exit
+        key
     fi
     
     mkdir -p ${GITBOX}
@@ -535,8 +543,8 @@ done
 #Main
 
 readonly_globals
-config
 rm -f "${TMPKEYRING}"
+config
 CORRESPONDENT=${1}
 MESSAGE=${2}
 if [ -n "${MESSAGE}" ]; then
