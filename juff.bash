@@ -15,7 +15,6 @@ declare -rg BELL=`tput bel`
 declare -g REMOTE='https://github.com/JuFF-GitHub/JuFF---Just-For-Fun.git'
 #Use ssh instead of https for faster git push
 declare -rg BRANCH='test'
-declare -rg INBOX=${HOME}'/Inbox_JuFF'
 declare -rg REPO=${INBOX}'/.git'
 declare -rg LATEST=${INBOX}'/.all.txt'
 declare -rg DOWNLOADS=${INBOX}'/Downloads'
@@ -34,12 +33,11 @@ declare -rg TRUSTREMOTE='https://github.com/SomajitDey/JuFF-KeyServer.git'
 declare -rg TRUSTLOCAL=${INBOX}'/.trustcentre'
 declare -rg PORT=${INBOX}'/my_JuFF.key'
 declare -rg GPGHOME=${INBOX}'/.gnupg'
-declare -rg SELFKEYRING=${GPGHOME}'/self.kbx'
 declare -rg EXPORT_SEC=${GPGHOME}'/privatekey.asc'
 declare -rg EXPORT_PUB=${GPGHOME}'/pubkey.asc'
 declare -rg PASSWDFILE=${GPGHOME}'/passphrase.txt'
 declare -rg PATFILE=${GPGHOME}'/access_token.txt'
-declare -rg TMPKEYRING=${GPGHOME}'/pubring.kbx'
+declare -rg KEYRING=${GPGHOME}'/pubring.kbx'
 declare -rg ORIGPWD=${PWD}
 declare -rg MAILINGLIST='somajit@users.sourceforge.net'
 declare -g GPGPASSWD
@@ -100,15 +98,19 @@ declare -rg GITBOX=${REPO}'/'${SELF}
 declare -rg VERIFIED_SELF=${TRUSTLOCAL}'/'${SELF}   #Contains pubkey (verified through mail) signed by admin
 declare -rg ABOUT=${GITBOX}'/about.txt'
 
+echo "Welcome ${SELF}" ; sleep 2
+
 key() {
 #One can encrypt this PASSWDFILE with a memorable password/PIN which will then become the juff passwd
 if [ -f "${PORT}" ]; then
     rm -rf "${GPGHOME}"
     echo "Extracting keys from ${PORT##*/}..."
+    [ ! -e "${KEYRING}" ] && echo 'Your JuFF key is broken : No keyring found. Exiting...' && exit
     tar -xzf ${PORT} --directory ${INBOX}
-    { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE} || echo 'Your JuFF key is broken'
+    { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE} || \
+    { echo 'Your JuFF key is broken : No passwd/keyid. Exiting...' && exit ;}
     { read REMOTE < ${PATFILE} && git remote set-url --push origin "${REMOTE}" ;} \
-    || echo 'Your JuFF key is broken'
+    || { echo 'Your JuFF key is broken : No access token. Exiting...' && exit ;}
 else
     echo 'Press Enter to proceed with the creation of new key.' 
     echo 'If you already have a key, close this with Ctrl + C and relaunch after installing the key as' ${PORT}
@@ -120,15 +122,15 @@ else
 
     echo ${GPGPASSWD} > ${PASSWDFILE} || echo 'Passphrase creation failed'
 
-    gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+    gpg --keyring "${KEYRING}" \
     --batch --no-tty --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --quick-gen-key ${SELF} || echo 'Key creation failed'
     
-    gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+    gpg --keyring "${KEYRING}" \
     --batch --no-tty --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --armor --output ${EXPORT_PUB} --export ${SELF} || echo 'Public key export failed'
 
-    gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+    gpg --keyring "${KEYRING}" \
     --batch --no-tty --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --armor --output ${EXPORT_SEC} --export-secret-keys ${SELF} || echo 'Secure key export failed'
     
@@ -145,7 +147,7 @@ else
         tail -n 1 "${DELIVERY}"
     fi
     
-    SELFKEYID=$(gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+    SELFKEYID=$(gpg --keyring "${KEYRING}" \
                 --no-auto-check-trustdb --keyid-format long -k ${SELF} | awk NR==2)
     
     if [ -n "${SELFKEYID}" ]; then
@@ -199,7 +201,7 @@ local COMMIT=$(git log --name-only --pretty=format:%H --before=${BEFORE} -1 | aw
 if [ -n "${COMMIT}" ]; then
 git restore -q --source="${COMMIT}" "${KEYOF}*"
 for FILES in ${KEYOF}* ; do
-    gpg --no-default-keyring --keyring "${TMPKEYRING}" \
+    gpg --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --import "${FILES}"
     if [ ${?} == '0' ]; then 
@@ -256,7 +258,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
     rm -f "${GARBTXT}" "${SENSETXT}" "${BUFFERGARB}/*" "${BUFFERSENSE}/*"  #Precautionary cleanup
     local EXT=$(echo ${FILE} | grep -o [.][txt,dl]*$)
     local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
-    gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+    gpg --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust --no-tty \
     -o "${SENSETXT}" -d "${DLQUEUE}/${FILE}" || { echo 'URL decryption failed' && continue ;}
@@ -269,7 +271,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             rm "${DLQUEUE}/${FILE}"
             timestamp ${BLUE}'Text received from '${RED}${FROM}
             rm ${SENSETXT}  #i.e. resetting for next output
-            gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+            gpg --keyring "${KEYRING}" \
             --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
             --always-trust \
             -o "${SENSETXT}" -d "${GARBTXT}" || { echo 'Text decryption failed' && continue ;}
@@ -288,7 +290,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             rm "${DLQUEUE}/${FILE}"
             timestamp "${BLUE}File received from ${RED}${FROM}"
             local BUFFEREDFILE=${BUFFERSENSE}'/'${DOWNLOADED##*/}
-            gpg --no-default-keyring --keyring "${SELFKEYRING}" \
+            gpg --keyring "${KEYRING}" \
             --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
             --always-trust \
             -o "${BUFFEREDFILE}" -d "${DOWNLOADED}" || { echo 'File decryption failed' && continue ;}
@@ -342,7 +344,7 @@ card() {
 
 local BLOB=${POSTBOX}'/'${FROM}'#'${EPOCHSECONDS}${2}
 echo -e "${1}" > "${CACHEUL}"
-gpg --no-default-keyring --keyring "${TMPKEYRING}" \
+gpg --keyring "${KEYRING}" \
 --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
 --always-trust -r "${TO}" \
 -o "${BLOB}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
@@ -359,7 +361,7 @@ echo 'Posting...'
 keyretrieve "${TO}" "${EPOCHSECONDS}"
 
 if [ -f "${2}" ]; then
-    gpg --no-default-keyring --keyring "${TMPKEYRING}" \
+    gpg --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" \
     -o "${CACHEDL}" -e "${2}" || { echo 'File encryption failed' && return 1 ;}
@@ -376,7 +378,7 @@ else
 fi
 
 echo "${TEXT}" > "${CACHEUL}"
-gpg --no-default-keyring --keyring "${TMPKEYRING}" \
+gpg --keyring "${KEYRING}" \
 --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
 --always-trust -r "${TO}" \
 -o "${CACHETXT}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
@@ -542,8 +544,14 @@ done
 
 #Main
 
+INBOX=${HOME}'/Inbox_JuFF'
+if [ ! -d "${INBOX}" ]; then 
+    read -ep 'Type inbox name here: '
+    REPLY=${REPLY%/*}
+    INBOX=${HOME}'/'${REPLY##*/}
+fi
+echo "Inbox is at ${INBOX}"
 readonly_globals
-rm -f "${TMPKEYRING}"
 config
 CORRESPONDENT=${1}
 MESSAGE=${2}
