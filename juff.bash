@@ -45,7 +45,6 @@ declare -rg EXPORT_PUB=${GPGHOME}'/pubkey.asc'
 declare -rg PASSWDFILE=${GPGHOME}'/passphrase.txt'
 declare -rg PATFILE=${GPGHOME}'/access_token.txt'
 declare -rg KEYRING=${GPGHOME}'/pubring.kbx'
-declare -rg ORIGPWD=${PWD}
 declare -rg MAILINGLIST='somajit@users.sourceforge.net'
 declare -g GPGPASSWD
 declare -g SELFKEYID
@@ -353,7 +352,7 @@ echo "Press Enter if the prompt is not available below"
 
 quit() {
     [ -n "${dPID}" ] && kill ${dPID} >/dev/null 2>&1
-    cd ${ORIGPWD} ; tput cnorm ; tput sgr0 ; tput rmcup
+    tput cnorm ; tput sgr0 ; tput rmcup
     wait ${postPID[@]}
     exit ${1}
 }
@@ -457,7 +456,7 @@ display() {
             local TMP
             [ "${INPUT%%/*}" == '~' ] && TMP="${HOME}/${INPUT#*/}" && [ -f "${TMP}" ] && INPUT="${TMP}"
             unset TMP
-            cd ${ORIGPWD}
+            cd ${OLDPWD}
             tput civis
         fi
         NOTIFY=''
