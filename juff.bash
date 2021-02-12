@@ -63,7 +63,14 @@ timestamp() {
 
 trustpull() {
 cd ${TRUSTLOCAL}
-git pull -q origin main || echo 'Pulling from key-server failed'
+#We tried pull-only; but it would sometimes fail; so done as fetch+merge...
+if git fetch --quiet origin main ; then
+    if ! git diff --quiet HEAD origin/main ; then
+        git pull -q origin main || echo 'Pulling from key-server failed'
+    fi
+else
+    echo 'Fetch from key-server failed'
+fi
 cd ${OLDPWD}
 } >> ${NOTIFICATION}
 
@@ -114,11 +121,17 @@ if [ -f "${PORT}" ]; then
     rm -rf "${GPGHOME}"
     echo "Extracting keys from ${PORT##*/}..."
     tar -xzf ${PORT} --directory ${INBOX}
-    [ ! -e "${KEYRING}" ] && echo 'Your JuFF key is broken : No keyring found. Exiting...' && exit
+    local FLAG='false'
+    [ ! -e "${KEYRING}" ] && echo 'Your JuFF key is broken : No keyring found. Exiting...' && FLAG='true'
     { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE} || \
-    { echo 'Your JuFF key is broken : No passwd/keyid. Exiting...' && exit ;}
+    { echo 'Your JuFF key is broken : No passwd/keyid. Exiting...' && FLAG='true' ;}
     { read REMOTE < ${PATFILE} && git remote set-url --push origin "${REMOTE}" ;} \
-    || { echo 'Your JuFF key is broken : No access token. Exiting...' && exit ;}
+    || { echo 'Your JuFF key is broken : No access token. Exiting...' && FLAG='true' ;}
+    if [ "${FLAG}" == 'true' ]; then
+        echo 'Fix the broken key or create a new one.'
+        echo "To create a new key, delete ${PORT} and then relaunch me."
+        unset FLAG
+    fi
 else
     echo 'Press Enter to proceed with the creation of new key.' 
     echo 'If you already have a key, close this with Ctrl + C and relaunch after installing the key as' ${PORT}
