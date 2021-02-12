@@ -574,13 +574,22 @@ done
 
 #Main
 
-INBOX=${HOME}'/Inbox_JuFF'
+INBOX=${HOME}'/Inbox_JuFF'  #default
 if [ ! -d "${INBOX}" ]; then 
+    echo "My defult inbox ${HOME} doesn't exist"
+    echo "Press Enter if you want me to proceed and create it." 
+    echo "Type in the directory path if you have any other inbox in mind."
     read -ep 'Type inbox name here: '
-    REPLY=${REPLY%/*}
-    INBOX=${HOME}'/'${REPLY##*/}
-    echo "Your Inbox is ${INBOX}. Press any key to proceed. Ctrl-c to exit."
-    read -n1
+    if [ -n "${REPLY}" ]; then 
+        REPLY=${REPLY%/*}
+#        INBOX=${HOME}'/'${REPLY##*/}
+        [ "${REPLY%%/*}" == '~' ] && INBOX="${HOME}/${REPLY#*/}"
+        [ -f "${INBOX}" ] && echo 'This is a file not a directory' && exit
+        if [ ! -d "${INBOX}" ]; then
+            echo "Should I go ahead and create ${INBOX}? Press any key to proceed. Ctrl-c to exit."
+            read -n1
+        fi
+    fi
 fi
 echo "Inbox is at ${INBOX}"
 readonly_globals
