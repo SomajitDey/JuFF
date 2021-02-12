@@ -581,8 +581,7 @@ if [ ! -d "${INBOX}" ]; then
     echo "Type in the directory path if you have any other inbox in mind."
     read -ep 'Type inbox name here: '
     if [ -n "${REPLY}" ]; then 
-        REPLY=${REPLY%/*}
-#        INBOX=${HOME}'/'${REPLY##*/}
+        [ ${REPLY: -1} == '/' ] && REPLY=${REPLY%/*}
         [ "${REPLY%%/*}" == '~' ] && INBOX="${HOME}/${REPLY#*/}"
         [ -f "${INBOX}" ] && echo 'This is a file not a directory' && exit
         if [ ! -d "${INBOX}" ]; then
