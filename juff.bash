@@ -285,8 +285,8 @@ for FILE in $(ls "${DLQUEUE}") ; do
     local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --always-trust --no-tty \
-    -o "${SENSETXT}" -d "${DLQUEUE}/${FILE}" || { echo 'URL decryption failed' && rm "${FILE}" && continue ;}
+    --always-trust --no-tty -o "${SENSETXT}" -d "${DLQUEUE}/${FILE}" \
+    || { echo 'URL decryption failed' && rm "${DLQUEUE}/${FILE}" && continue ;}
     case ${EXT} in
     .txt)
         echo Trying text download...
