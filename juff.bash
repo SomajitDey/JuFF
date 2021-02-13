@@ -3,7 +3,7 @@
 # https://0x0.st/
 # https://file.io
 
-#TODO: git signing commits and verifying the same. Make export GNUPGHOME=${GPGHOME} for this
+INBOX=${HOME}'/Inbox_JuFF'  #default: You may customize this
 
 readonly_globals() {
 set -o pipefail
@@ -456,7 +456,7 @@ display() {
             cd ${TRUSTLOCAL}    #This is just so that bash autocompletes the typed user names on Tab press
             read -ep 'Input: ' INPUT
             local TMP
-            [ "${INPUT%%/*}" == '~' ] && TMP="${HOME}/${INPUT#*/}" && [ -f "${TMP}" ] && INPUT="${TMP}"
+            [ "${INPUT:0:2}" == '~/' ] && TMP="${HOME}/${INPUT#*/}" && [ -f "${TMP}" ] && INPUT="${TMP}"
             unset TMP
             cd ${OLDPWD}
             tput civis
@@ -574,20 +574,22 @@ done
 
 #Main
 
-INBOX=${HOME}'/Inbox_JuFF'  #default
 if [ ! -d "${INBOX}" ]; then 
-    echo "My defult inbox ${HOME} doesn't exist"
+    echo "My defult inbox ${INBOX} doesn't exist"
     echo "Press Enter if you want me to proceed and create it." 
     echo "Type in the directory path if you have any other inbox in mind."
     read -ep 'Type inbox name here: '
     if [ -n "${REPLY}" ]; then 
-        [ ${REPLY: -1} == '/' ] && REPLY=${REPLY%/*}
-        [ "${REPLY%%/*}" == '~' ] && INBOX="${HOME}/${REPLY#*/}"
+        [ "${REPLY: -1}" == '/' ] && REPLY="${REPLY%/*}"
+        [ "${REPLY:0:2}" == '~/' ] && INBOX="${HOME}/${REPLY#*/}"
         [ -f "${INBOX}" ] && echo 'This is a file not a directory' && exit
         if [ ! -d "${INBOX}" ]; then
-            echo "Should I go ahead and create ${INBOX}? Press any key to proceed. Ctrl-c to exit."
-            read -n1
+            echo "Should I go ahead and create ${INBOX} ?"
+        else
+            echo "Should I start configuring ${INBOX} now?"
         fi
+        echo "Press any key to proceed. Ctrl-c to exit."
+        read -n1
     fi
 fi
 echo "Inbox is at ${INBOX}"
