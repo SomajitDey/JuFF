@@ -283,6 +283,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
     rm -f "${GARBTXT}" "${SENSETXT}" "${BUFFERGARB}/*" "${BUFFERSENSE}/*"  #Precautionary cleanup
     local EXT=$(echo ${FILE} | grep -o [.][txt,dl]*$)
     local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
+    local CHAT=${INBOX}'/'${FROM}'.txt'
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust --no-tty -o "${SENSETXT}" -d "${DLQUEUE}/${FILE}" \
@@ -290,7 +291,6 @@ for FILE in $(ls "${DLQUEUE}") ; do
     case ${EXT} in
     .txt)
         echo Trying text download...
-        local CHAT=${INBOX}'/'${FROM}'.txt'
         xargs curl -sf -o "${GARBTXT}" < ${SENSETXT}
         if [ ${?} == '0' ]; then
             rm "${DLQUEUE}/${FILE}"
@@ -319,7 +319,8 @@ for FILE in $(ls "${DLQUEUE}") ; do
             --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
             --always-trust \
             -o "${BUFFEREDFILE}" -d "${DOWNLOADED}" || { echo 'File decryption failed' && continue ;}
-            [ -e "${BUFFEREDFILE}" ] && mv --backup=numbered "${BUFFEREDFILE}" "${DIR}"
+            mv --backup=numbered "${BUFFEREDFILE}" "${DIR}"
+            echo "Received ${BUFFEREDFILE##*/} from ${FROM}" | tee -a ${LATEST} >> ${CHAT}
         else
             timestamp "${RED}Download failed. Will retry again."
         fi
@@ -360,20 +361,33 @@ quit() {
 }
 
 post() {
+local URL
+upload(){
+local COUNT
+local ITERATION=5
+local PAYLOAD="${1}"
+until [ ${COUNT} == ${ITERATION} ]; do
+    URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*")
+    [ -n "${URL}" ] && break
+    URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://0x0.st | grep -o "https://0x0.st/[A-Za-z0-9]*")
+    [ -n "${URL}" ] && break
+    ((COUNT++))
+done
+}
 local CACHETXT='/tmp/readmeifucan.juff'
-local CACHEDL='/tmp/viewmeifucan.juff'
+local CACHEFILE='/tmp/viewmeifucan.juff'
 local CACHEUL=${INBOX}'/.ul.txt'
-rm -f "${CACHETXT}" "${CACHEDL}" "${CACHEUL}"  #Precautionary cleanup
+rm -f "${CACHETXT}" "${CACHEFILE}" "${CACHEUL}"  #Precautionary cleanup
 
 card() {
-
+echo "${GREEN}Upload successful. Yaay !!${NORMAL}"
 local BLOB=${POSTBOX}'/'${FROM}'#'${EPOCHSECONDS}${2}
 echo -e "${1}" > "${CACHEUL}"
 $gpg --no-default-keyring --keyring "${KEYRING}" \
 --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
 --always-trust -r "${TO}" \
 -o "${BLOB}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
-
+echo ${GREEN}'Message posted for delivery. To be delivered on next push.'${NORMAL}
 }
 
 local FROM=${SELF}
@@ -382,39 +396,31 @@ local POSTBOX=${REPO}'/'${TO}
 local TEXT
 
 [ ! -d "${POSTBOX}" ] && echo ${RED}"ERROR: ${POSTBOX} could not be found. Sending failed."${NORMAL} && return 1
-echo 'Posting...'
+echo 'Trying to upload your encrypted correspondence...'
 keyretrieve "${TO}" "${EPOCHSECONDS}"
 
 if [ -f "${2}" ]; then
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" \
-    -o "${CACHEDL}" -e "${2}" || { echo 'File encryption failed' && return 1 ;}
-    
-    local URL=$(curl -sfF "file=@${CACHEDL}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*") \
-    || local URL=$(curl -sfF "file=@${CACHEDL}" --no-epsv https://0x0.st | grep -o "https://0x0.st/[A-Za-z0-9]*")
-    if [ -z "${URL}" ]; then 
-        echo ${RED}"ERROR: File upload failed. Check internet connectivity."${NORMAL}
-        return 2
-    fi
+    -o "${CACHEFILE}" -e "${2}" || { echo "{RED}File encryption failed{NORMAL}" && return 1 ;}
+    echo "${GREEN}Fully encrypted. Uploading now...${NORMAL}"
+    upload "${CACHEFILE}"
+    [ -z "${URL}" ] && echo ${RED}"ERROR: File upload failed. Check internet connectivity."${NORMAL} && return 2
     card "${URL} -o ${BUFFERGARB}/${2##*/}" ".dl"
-    TEXT=${RED}${FROM}${CYAN}$'\n'' sent you '$'\t'${2##*/}${NORMAL}
 else
-    TEXT=${CYAN}${2}${NORMAL}$'\n'
+    TEXT=${CYAN}${2}${NORMAL} && echo "${TEXT}" > "${CACHEUL}"
+    $gpg --no-default-keyring --keyring "${KEYRING}" \
+    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --always-trust -r "${TO}" \
+    -o "${CACHETXT}" -e "${CACHEUL}" || { echo "${RED}Text encryption failed${NORMAL}" && return 1 ;}
+    echo "${GREEN}Fully encrypted. Uploading now...${NORMAL}"
+    upload "${CACHETXT}"
+    [ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity."${NORMAL} && return 3
+    card "${URL}" ".txt"
 fi
-
-echo "${TEXT}" > "${CACHEUL}"
-$gpg --no-default-keyring --keyring "${KEYRING}" \
---batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
---always-trust -r "${TO}" \
--o "${CACHETXT}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
-local URL=$(curl -sfF "file=@${CACHETXT}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*") \
-|| local URL=$(curl -sfF "file=@${CACHETXT}" --no-epsv https://0x0.st | grep -o "https://0x0.st/[A-Za-z0-9]*")
-[ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity."${NORMAL} && return 3
-card "${URL}" ".txt"
-local CHAT=${INBOX}'/'${TO}'.txt'
-echo -e ${2}$'\n' >> ${CHAT}
-echo ${GREEN}'Message posted for delivery. To be delivered on next push.'${NORMAL}
+local CHAT="${INBOX}/${TO}.txt"
+echo -e ${2} >> "${CHAT}"
 }
 
 frontend() {
