@@ -87,8 +87,8 @@ echo >> ${LASTACT_LOG}
 
 if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     local TOREGISTER='TRUE'
-    git clone "${TRUSTREMOTE}" "${TRUSTLOCAL}" || { echo "Perhaps an issue with your network"; exit;}
-    git clone "${REMOTE}" "${REPO}" || { echo "Perhaps an issue with your network"; exit;}
+    git clone --quiet "${TRUSTREMOTE}" "${TRUSTLOCAL}" || { echo "Perhaps an issue with your network"; exit;}
+    git clone --quiet "${REMOTE}" "${REPO}" || { echo "Perhaps an issue with your network"; exit;}
     cd ${REPO}
     git switch ${BRANCH}
     git branch -u 'origin/'${BRANCH}
@@ -181,7 +181,7 @@ else
         echo "Once verification is done you will receive a message both here and at ${SELF_EMAIL}"
         echo ${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"
         echo "See ya then!"
-        cd ${INBOX} ; tar -cvzf ${PORT} .gnupg ; cd ${OLDPWD}
+        cd ${INBOX} ; tar -czf ${PORT} .gnupg ; cd ${OLDPWD}
     else
         echo "Key creation failed...something went wrong."
         echo "Remove ${INBOX} with sudo rm -r ${INBOX} and lanch me again."
@@ -290,7 +290,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
     local CHAT=${INBOX}'/'${FROM}'.txt'
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --always-trust --no-tty -o "${SENSETXT}" -d "${DLQUEUE}/${FILE}" \
+    --always-trust --no-tty -o "${SENSETXT}" -d "${DLQUEUE}/${FILE}" > /dev/null 2>&1 \
     || { echo 'URL decryption/verification failed' && rm "${DLQUEUE}/${FILE}" && continue ;}
     case ${EXT} in
     .txt)
@@ -303,7 +303,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             $gpg --no-default-keyring --keyring "${KEYRING}" \
             --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
             --always-trust \
-            -o "${SENSETXT}" -d "${GARBTXT}" || { echo 'Text decryption failed' && continue ;}
+            -o "${SENSETXT}" -d "${GARBTXT}" > /dev/null 2>&1 || { echo 'Text decryption failed' && continue ;}
             (cat "${SENSETXT}" && echo) | tee -a ${LATEST} >> ${CHAT} && rm "${SENSETXT}"
             whiteline "${BLUE}------${MAGENTA}from ${BOLD}${RED}${FROM}${NORMAL}"$'\n' >> ${LATEST}
         else
@@ -322,7 +322,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             $gpg --no-default-keyring --keyring "${KEYRING}" \
             --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
             --always-trust \
-            -o "${BUFFEREDFILE}" -d "${DOWNLOADED}" || { echo 'File decryption failed' && continue ;}
+            -o "${BUFFEREDFILE}" -d "${DOWNLOADED}" > /dev/null 2>&1 || { echo 'File decryption failed' && continue ;}
             mv --backup=numbered "${BUFFEREDFILE}" "${DIR}"
             echo "Received ${BUFFEREDFILE##*/} from ${FROM}"$'\n' | tee -a ${LATEST} >> ${CHAT}
         else
@@ -389,7 +389,7 @@ echo -e "${1}" > "${CACHEUL}"
 $gpg --no-default-keyring --keyring "${KEYRING}" \
 --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
 --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
--o "${BLOB}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
+-o "${BLOB}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo 'Text encryption failed' && return 1 ;}
 echo ${GREEN}'Message posted for delivery. To be delivered on next push.'${NORMAL}
 }
 
@@ -406,7 +406,7 @@ if [ -f "${2}" ]; then
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
-    -o "${CACHEFILE}" -e "${2}" || { echo "{RED}File encryption failed{NORMAL}" && return 1 ;}
+    -o "${CACHEFILE}" -e "${2}" > /dev/null 2>&1 || { echo "{RED}File encryption failed{NORMAL}" && return 1 ;}
     echo "${GREEN}Fully encrypted. Uploading now...${NORMAL}"
     upload "${CACHEFILE}"
     [ -z "${URL}" ] && echo ${RED}"ERROR: File upload failed. Check internet connectivity."${NORMAL} && return 2
@@ -416,7 +416,7 @@ else
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
-    -o "${CACHETXT}" -e "${CACHEUL}" || { echo "${RED}Text encryption failed${NORMAL}" && return 1 ;}
+    -o "${CACHETXT}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo "${RED}Text encryption failed${NORMAL}" && return 1 ;}
     echo "${GREEN}Fully encrypted. Uploading now...${NORMAL}"
     upload "${CACHETXT}"
     [ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity."${NORMAL} && return 3
