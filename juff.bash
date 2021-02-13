@@ -589,10 +589,10 @@ if [ ! -d "${INBOX}" ]; then
     echo "My defult inbox ${INBOX} doesn't exist"
     echo "Press Enter if you want me to proceed and create it." 
     echo "Type in the directory path if you have any other inbox in mind."
-    read -ep 'Type inbox name here: '
-    if [ -n "${REPLY}" ]; then 
-        [ "${REPLY: -1}" == '/' ] && REPLY="${REPLY%/*}"
-        [ "${REPLY:0:2}" == '~/' ] && INBOX="${HOME}/${REPLY#*/}"
+    read -ep 'Type inbox name here: ' INBOX
+    if [ -n "${INBOX}" ]; then 
+        [ "${INBOX: -1}" == '/' ] && INBOX="${INBOX%/*}"
+        [ "${INBOX:0:2}" == '~/' ] && INBOX="${HOME}/${INBOX#*/}"
         [ -f "${INBOX}" ] && echo 'This is a file not a directory' && exit
         if [ ! -d "${INBOX}" ]; then
             echo "Should I go ahead and create ${INBOX} ?"
@@ -601,6 +601,8 @@ if [ ! -d "${INBOX}" ]; then
         fi
         echo "Press any key to proceed. Ctrl-c to exit."
         read -n1
+    else
+        echo "Null input...exiting"
     fi
 fi
 echo "Inbox is at ${INBOX}"
