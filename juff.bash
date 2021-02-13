@@ -320,7 +320,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             --always-trust \
             -o "${BUFFEREDFILE}" -d "${DOWNLOADED}" || { echo 'File decryption failed' && continue ;}
             mv --backup=numbered "${BUFFEREDFILE}" "${DIR}"
-            echo "Received ${BUFFEREDFILE##*/} from ${FROM}" | tee -a ${LATEST} >> ${CHAT}
+            echo "Received ${BUFFEREDFILE##*/} from ${FROM}"$'\n' | tee -a ${LATEST} >> ${CHAT}
         else
             timestamp "${RED}Download failed. Will retry again."
         fi
@@ -420,7 +420,7 @@ else
     card "${URL}" ".txt"
 fi
 local CHAT="${INBOX}/${TO}.txt"
-echo -e ${2} >> "${CHAT}"
+echo -e ${2}$'\n' >> "${CHAT}"
 }
 
 frontend() {
@@ -482,7 +482,8 @@ local EXITLOOP ; local TRAILING
 local FILE=${1}
 local PROMPT="${2}"
 local MARGIN='8'
-local SCROLL='2'
+local SCROLL='1'
+local HEADER='2'
 local SHOWINGTILL; local SHOWINGFROM
 local REPAINT='true'
 touch "${TIMEREF}"
@@ -497,10 +498,10 @@ while [ -z "${INPUT}" ]; do
         if [ -n "${REPAINT}" ]; then
             local WINDOW=$(set -- $(wc -l ${FILE}) && echo $1)
             [ -z "${SHOWINGTILL}" ] && SHOWINGTILL=${WINDOW}
-            local DROP=$(($(tput lines) - ${MARGIN}))
+            local DROP=$(($(tput lines) - MARGIN))
             tput clear ; tput cud 2
-            SHOWINGFROM=$((${SHOWINGTILL}-${DROP} + 2))
-            if ((${SHOWINGFROM} < 1)); then SHOWINGFROM='1'; fi
+            SHOWINGFROM=$((SHOWINGTILL-DROP + HEADER))
+            if ((SHOWINGFROM < 1)); then SHOWINGFROM='1'; fi
             awk "NR==${SHOWINGFROM},NR==${SHOWINGTILL}" "${FILE}"
         fi
         display
@@ -509,10 +510,9 @@ while [ -z "${INPUT}" ]; do
     done
     if [ ${EXITLOOP} == ${ESC} ]; then 
         case ${EXITLOOP}${TRAILING} in
-            ${UP} ) SHOWINGTILL=$((${SHOWINGTILL} - ${SCROLL}))
-                    REPAINT='true' ;;
-            ${DOWN} ) (( ${SHOWINGTILL} + ${SCROLL} <= ${WINDOW} )) && SHOWINGTILL=${SHOWINGTILL}+${SCROLL}
-                    REPAINT='true' ;;
+            ${UP} ) ((SHOWINGTILL-SCROLL > DROP-HEADER)) && SHOWINGTILL=$((SHOWINGTILL-SCROLL)) && REPAINT='true' ;;
+            ${DOWN} ) WINDOW=$(set -- $(wc -l ${FILE}) && echo $1) 
+                    ((SHOWINGTILL+SCROLL <= WINDOW)) && SHOWINGTILL=$((SHOWINGTILL+SCROLL)) && REPAINT='true' ;;
             ${RIGHT} ) return 2 ;;
             ${LEFT} ) return 3 ;;
             * ) return 1 ;;
