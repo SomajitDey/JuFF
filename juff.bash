@@ -214,6 +214,7 @@ fi
 }
 
 keyretrieve() {
+trustpull
 local KEYOF=${1}
 local BEFORE=${2}
 cd ${TRUSTLOCAL}
@@ -234,6 +235,7 @@ local FILES="${KEYOF}"
     else
         echo 'Key import failed'
     fi
+    rm "${FILES}" ; git restore -q --source=HEAD "${FILES}" #For resetting everything back to current HEAD
 #done
 fi
 cd ${OLDPWD}
@@ -258,10 +260,12 @@ declare -g PUSHOK=''
 } >> ${PUSH_LOG}
 
 queue() {
-local COMMIT
-    for LINE in $(git log --name-only --pretty=format:%H last.. -- "${GITBOX}"); do
+    for LINE in $(git log --name-only --pretty=format:%H:%an#%ae#%at last.. -- "${GITBOX}"); do
         if [ "${LINE}" == "${LINE##*/}" ]; then
-            COMMIT="${LINE}"
+            local COMMIT="${LINE%:*}"
+            local FROM="${LINE%#*}" && FROM="${FROM#*:}"
+            local COMMITTIME="${LINE##*#}"
+            keyretrieve "${FROM}" "${COMMITTIME}"
         elif [ "${LINE##*/}" != 'about.txt' ]; then
             ln -t ${DLQUEUE} ${LINE} > /dev/null 2>&1 && continue
             git restore -q --source="${COMMIT}" "${LINE}" && ln -t ${DLQUEUE} ${LINE} && \
@@ -287,7 +291,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust --no-tty -o "${SENSETXT}" -d "${DLQUEUE}/${FILE}" \
-    || { echo 'URL decryption failed' && rm "${DLQUEUE}/${FILE}" && continue ;}
+    || { echo 'URL decryption/verification failed' && rm "${DLQUEUE}/${FILE}" && continue ;}
     case ${EXT} in
     .txt)
         echo Trying text download...
@@ -342,7 +346,6 @@ else
     ITERATION=$((${COUNT} - 1))
 fi
 until [ ${COUNT} == ${ITERATION} ] ; do
-    trustpull & #Should we wait for this...isn't this as fast or faster than the next pull
     pull
     push
     queue
@@ -385,7 +388,7 @@ local BLOB=${POSTBOX}'/'${FROM}'#'${EPOCHSECONDS}${2}
 echo -e "${1}" > "${CACHEUL}"
 $gpg --no-default-keyring --keyring "${KEYRING}" \
 --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
---always-trust -r "${TO}" \
+--always-trust -r "${TO}" -s -u "${SELFKEYID}" \
 -o "${BLOB}" -e "${CACHEUL}" || { echo 'Text encryption failed' && return 1 ;}
 echo ${GREEN}'Message posted for delivery. To be delivered on next push.'${NORMAL}
 }
