@@ -71,7 +71,7 @@ else
     echo 'Fetch from key-server failed'
 fi
 cd ${OLDPWD}
-} >> ${NOTIFICATION}
+}
 
 config() {
 echo "Configuring ..."
@@ -405,7 +405,7 @@ keyretrieve "${TO}" "${EPOCHSECONDS}"
 if [ -f "${2}" ]; then
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --always-trust -r "${TO}" \
+    --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
     -o "${CACHEFILE}" -e "${2}" || { echo "{RED}File encryption failed{NORMAL}" && return 1 ;}
     echo "${GREEN}Fully encrypted. Uploading now...${NORMAL}"
     upload "${CACHEFILE}"
@@ -415,7 +415,7 @@ else
     TEXT=${CYAN}${2}${NORMAL} && echo "${TEXT}" > "${CACHEUL}"
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
-    --always-trust -r "${TO}" \
+    --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
     -o "${CACHETXT}" -e "${CACHEUL}" || { echo "${RED}Text encryption failed${NORMAL}" && return 1 ;}
     echo "${GREEN}Fully encrypted. Uploading now...${NORMAL}"
     upload "${CACHETXT}"
