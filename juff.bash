@@ -547,6 +547,8 @@ fi
 
 ui() {
 tput smcup ; tput civis
+trap quit QUIT TERM INT HUP
+
 altscr() {
 tput rmcup ; tput cnorm
 read -sn1 -p 'Press any key to return to juff. Ctrl-c to exit.' && read -st0.001
