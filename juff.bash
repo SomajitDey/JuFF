@@ -165,7 +165,7 @@ else
         git remote set-url --push origin "${REMOTE}"
         echo ${REMOTE} > ${PATFILE}
         echo 'Uploading your public key for registration...'
-        post "${REGISTRAR}" "${EXPORT_PUB}"
+        post "${REGISTRAR}" "${EXPORT_PUB}" "DONTSIGN"
         daemon 1
         tail -n 1 "${DELIVERY}"
     fi
@@ -367,10 +367,10 @@ quit() {
 post() {
 local URL
 upload(){
-local COUNT
+local COUNT=0
 local ITERATION=5
 local PAYLOAD="${1}"
-until [ ${COUNT} == ${ITERATION} ]; do
+until ((COUNT == ITERATION)); do
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*")
     [ -n "${URL}" ] && break
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://0x0.st | grep -o "https://0x0.st/[A-Za-z0-9]*")
@@ -383,41 +383,63 @@ local CACHEFILE='/tmp/viewmeifucan.juff'
 local CACHEUL=${INBOX}'/.ul.txt'
 rm -f "${CACHETXT}" "${CACHEFILE}" "${CACHEUL}"  #Precautionary cleanup
 
+local FROM="${SELF}"
+local TO="${1}"
+local POSTBOX="${REPO}/${TO}"
+local TEXT
+local DONTSIGN="${3}"
+
 card() {
 echo "${GREEN}Upload successful. Yaay !!${NORMAL}"
 local BLOB=${POSTBOX}'/'${FROM}'#'${EPOCHSECONDS}${2}
 echo -e "${1}" > "${CACHEUL}"
-$gpg --no-default-keyring --keyring "${KEYRING}" \
---batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
---always-trust -r "${TO}" -s -u "${SELFKEYID}" \
--o "${BLOB}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo 'Text encryption failed' && return 1 ;}
+if [ -n "${DONTSIGN}" ]; then 
+    $gpg --no-default-keyring --keyring "${KEYRING}" \
+    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --always-trust -r "${TO}" \
+    -o "${BLOB}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo 'Text encryption failed' && return 1 ;}
+else
+    $gpg --no-default-keyring --keyring "${KEYRING}" \
+    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
+    -o "${BLOB}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo 'Text encryption failed' && return 1 ;}
+fi
 echo ${GREEN}'Message posted for delivery. To be delivered on next push.'${NORMAL}
 }
-
-local FROM=${SELF}
-local TO=${1}
-local POSTBOX=${REPO}'/'${TO}
-local TEXT
 
 [ ! -d "${POSTBOX}" ] && echo ${RED}"ERROR: ${POSTBOX} could not be found. Sending failed."${NORMAL} && return 1
 echo 'Trying to upload your encrypted correspondence...'
 keyretrieve "${TO}" "${EPOCHSECONDS}"
 
 if [ -f "${2}" ]; then
+    if [ -n "${DONTSIGN}" ]; then
+    $gpg --no-default-keyring --keyring "${KEYRING}" \
+    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --always-trust -r "${TO}" \
+    -o "${CACHEFILE}" -e "${2}" > /dev/null 2>&1 || { echo "${RED}File encryption failed${NORMAL}" && return 1 ;}
+    else
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
-    -o "${CACHEFILE}" -e "${2}" > /dev/null 2>&1 || { echo "{RED}File encryption failed{NORMAL}" && return 1 ;}
+    -o "${CACHEFILE}" -e "${2}" > /dev/null 2>&1 || { echo "${RED}File encryption failed${NORMAL}" && return 1 ;}
+    fi
     echo "${GREEN}Fully encrypted. Uploading now...${NORMAL}"
     upload "${CACHEFILE}"
     [ -z "${URL}" ] && echo ${RED}"ERROR: File upload failed. Check internet connectivity."${NORMAL} && return 2
     card "${URL} -o ${BUFFERGARB}/${2##*/}" ".dl"
 else
     TEXT=${CYAN}${2}${NORMAL} && echo "${TEXT}" > "${CACHEUL}"
+    if [ -n "${DONTSIGN}" ]; then
+    $gpg --no-default-keyring --keyring "${KEYRING}" \
+    --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
+    --always-trust -r "${TO}" \
+    -o "${CACHETXT}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo "${RED}Text encryption failed${NORMAL}" && return 1 ;}
+    else
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
     -o "${CACHETXT}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo "${RED}Text encryption failed${NORMAL}" && return 1 ;}
+    fi
     echo "${GREEN}Fully encrypted. Uploading now...${NORMAL}"
     upload "${CACHETXT}"
     [ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity."${NORMAL} && return 3
