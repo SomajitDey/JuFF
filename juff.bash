@@ -485,9 +485,9 @@ display() {
         [ -z "${NOTIFY}" ] && [ -z "${REPAINT}" ] && return
         tput home
         if [ -z "${EXITLOOP}" ]; then
-            echo 'Nav mode ON: Esc = quit or go back ; UP, DOWN, LEFT, RIGHT for navigation'
+            tput el && echo 'Nav mode ON: Esc = quit or go back ; UP, DOWN, LEFT, RIGHT for navigation'
         else
-            echo 'Input mode ON: Press Enter to switch to Nav mode'
+            tput el && echo 'Input mode ON: Press Enter to switch to Nav mode'
         fi
         tput el; tput cud1 && tput el
         tput home ; tput cud ${DROP} ; tput ed
