@@ -100,7 +100,7 @@ if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     set -- ${RESPONSE}
     git config --local user.email ${1}
 else
-    trustpull &
+    trustpull
     local TOREGISTER
     cd ${REPO}
 fi
@@ -611,8 +611,9 @@ while [ -n "${PAGE}" ]; do
         frontend "${INBOX}/${CORRESPONDENT}.txt" 'Enter message or drag and drop files to send'
         case ${?} in 
         0)  MESSAGE="${INPUT}" ;;
-        1 | 3 ) PAGE='1' ; PREV_CORR="${CORRESPONDENT}" ; unset CORRESPONDENT
-                echo "Back from chatting with ${CORRESPONDENT}" >> ${LASTACT_LOG} ;;
+        1 | 3 ) PAGE='1' ; PREV_CORR="${CORRESPONDENT}"
+                echo "Back from chatting with ${CORRESPONDENT}" >> ${LASTACT_LOG} 
+                unset CORRESPONDENT ;;
         2 ) altscr ;;
         esac
         [ -n "${MESSAGE}" ] && backend ;;
