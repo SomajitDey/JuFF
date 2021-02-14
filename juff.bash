@@ -262,7 +262,7 @@ declare -g PUSHOK=''
                     break
                 else
                     PUSHOK='false'
-                    timestamp "${RED}Push failed. Maybe becoz pull is required or maybe there's no net. I retry..."
+                    timestamp "${RED}Push failed. Maybe becoz pull is required or there's no net. Retrying"
                     continue
                 fi
                 echo "No success in pushing! Tried enough"
