@@ -252,8 +252,21 @@ declare -g PUSHOK=''
             echo ${YELLOW}'Delivered!'${NORMAL} > "${DELIVERY}"
             PUSHOK='true'
         else
-            PUSHOK='false'
-            timestamp "${RED}Push failed. Maybe becoz pull is required or maybe there's no net"
+            for i in {1..10}; do
+                git add --all > /dev/null 2>&1 && { git diff --quiet HEAD || git commit -qm 'by juff-daemon';}
+                git fetch --quiet origin "${BRANCH}"
+                if { git rebase --quiet origin/"${BRANCH}" && git push -q origin "${BRANCH}";} > /dev/null 2>&1 ; then
+                    timestamp "${GREEN}Push successful"
+                    PUSHOK='true'
+                    echo ${YELLOW}'Delivered!'${NORMAL} > "${DELIVERY}" 
+                    break
+                else
+                    PUSHOK='false'
+                    timestamp "${RED}Push failed. Maybe becoz pull is required or maybe there's no net. I retry..."
+                    continue
+                fi
+                echo "No success in pushing! Tried enough"
+            done
         fi
     else
         echo ${MAGENTA}'git is synced'${NORMAL}
