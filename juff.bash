@@ -364,6 +364,8 @@ quit() {
     exit ${1}
 }
 
+#Below we use gpg -a or --armor for encrypted output...This is very important..gpg expects ASCII input while decryting
+#So, if we don't upload explicitly ascii output from encryption phase, gpg decryption gives neither output nor error!
 post() {
 local URL
 upload(){
@@ -394,12 +396,12 @@ echo "${GREEN}Upload successful. Yaay !!${NORMAL}"
 local BLOB=${POSTBOX}'/'${FROM}'#'${EPOCHSECONDS}${2}
 echo -e "${1}" > "${CACHEUL}"
 if [ -n "${DONTSIGN}" ]; then 
-    $gpg --no-default-keyring --keyring "${KEYRING}" \
+    $gpg -a --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" \
     -o "${BLOB}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo 'Text encryption failed' && return 1 ;}
 else
-    $gpg --no-default-keyring --keyring "${KEYRING}" \
+    $gpg -a --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
     -o "${BLOB}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo 'Text encryption failed' && return 1 ;}
@@ -413,12 +415,12 @@ keyretrieve "${TO}" "${EPOCHSECONDS}"
 
 if [ -f "${2}" ]; then
     if [ -n "${DONTSIGN}" ]; then
-    $gpg --no-default-keyring --keyring "${KEYRING}" \
+    $gpg -a --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" \
     -o "${CACHEFILE}" -e "${2}" > /dev/null 2>&1 || { echo "${RED}File encryption failed${NORMAL}" && return 1 ;}
     else
-    $gpg --no-default-keyring --keyring "${KEYRING}" \
+    $gpg -a --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
     -o "${CACHEFILE}" -e "${2}" > /dev/null 2>&1 || { echo "${RED}File encryption failed${NORMAL}" && return 1 ;}
@@ -430,12 +432,12 @@ if [ -f "${2}" ]; then
 else
     TEXT=${CYAN}${2}${NORMAL} && echo "${TEXT}" > "${CACHEUL}"
     if [ -n "${DONTSIGN}" ]; then
-    $gpg --no-default-keyring --keyring "${KEYRING}" \
+    $gpg -a --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" \
     -o "${CACHETXT}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo "${RED}Text encryption failed${NORMAL}" && return 1 ;}
     else
-    $gpg --no-default-keyring --keyring "${KEYRING}" \
+    $gpg -a --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
     -o "${CACHETXT}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo "${RED}Text encryption failed${NORMAL}" && return 1 ;}
