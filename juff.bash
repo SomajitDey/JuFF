@@ -594,7 +594,8 @@ logwatch() {
 }
 
 display() {
-        [ -z "${NOTIFY}" ] && [ -z "${REPAINT}" ] && return
+        [ -z "${NOTIFY}" ] && return
+        NOTIFY=''
         tput home
         if [ -z "${EXITLOOP}" ]; then
             tput el && echo "${BOLD}${UNDERLINE}Nav mode ON: Esc = quit or go back ; UP, DOWN, LEFT, RIGHT for navigation${NORMAL}"
@@ -620,7 +621,6 @@ display() {
             cd ${OLDPWD}
             tput civis
         fi
-        NOTIFY=''
 }
 
 local ESC=$'\e'
@@ -649,6 +649,7 @@ while [ -z "${INPUT}" ]; do
     while [ -z "${EXITLOOP}" ]; do
         logwatch
         if [ -n "${REPAINT}" ]; then
+            REPAINT='' && NOTIFY='true'
             local WINDOW=$(set -- $(wc -l ${FILE}) && echo $1)
             [ -z "${SHOWINGTILL}" ] && SHOWINGTILL=${WINDOW}
             local DROP=$(($(tput lines) - MARGIN))
@@ -659,7 +660,6 @@ while [ -z "${INPUT}" ]; do
         fi
         display
         read -srt ${DELAY} -n 1 EXITLOOP && read -srt0.001 TRAILING
-        REPAINT=''
     done
     if [ ${EXITLOOP} == ${ESC} ]; then 
         case ${EXITLOOP}${TRAILING} in
