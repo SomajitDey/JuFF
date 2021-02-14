@@ -325,7 +325,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             --always-trust \
             -o "${BUFFEREDFILE}" -d "${DOWNLOADED}" > /dev/null 2>&1 || { echo 'File decryption failed' && continue ;}
             mv --backup=numbered "${BUFFEREDFILE}" "${DIR}"
-            echo "Received ${BUFFEREDFILE##*/} from ${FROM}"$'\n' | tee -a ${LATEST} >> ${CHAT}
+            echo "${CYAN}${FROM} sent ${BUFFEREDFILE##*/}${NORMAL}"$'\n' | tee -a ${LATEST} >> ${CHAT}
         else
             timestamp "${RED}Download failed. Will retry again."
         fi
