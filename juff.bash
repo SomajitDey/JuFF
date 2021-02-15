@@ -381,7 +381,7 @@ quit() {
 #Below we use gpg -a or --armor for encrypted output...This is very important..gpg expects ASCII input while decryting
 #So, if we don't upload explicitly ascii output from encryption phase, gpg decryption gives neither output nor error!
 post() {
-local URL
+local URL=''
 upload(){
 local COUNT=0
 local ITERATION=5
