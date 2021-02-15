@@ -389,7 +389,7 @@ local COUNT=0
 local ITERATION=5
 local PAYLOAD="${1}"
 until ((COUNT == ITERATION)); do
-    URL=$(curl -sf --upload-file "${PAYLOAD}" "https://transfer.sh/${PAYLOAD}")
+    URL=$(curl -sf --no-epsv --upload-file "${PAYLOAD}" "https://transfer.sh/${PAYLOAD##*/}")
     [ -n "${URL}" ] && timestamp "Uploaded to transfer.sh on count=$COUNT" >> ${SERVERLOG} && break
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*")
     [ -n "${URL}" ] && timestamp "Uploaded to file.io on count=$COUNT" >> ${SERVERLOG} && break
