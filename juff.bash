@@ -393,6 +393,8 @@ until ((COUNT == ITERATION)); do
     [ -n "${URL}" ] && timestamp "Uploaded to transfer.sh on count=$COUNT" >> ${SERVERLOG} && break
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*")
     [ -n "${URL}" ] && timestamp "Uploaded to file.io on count=$COUNT" >> ${SERVERLOG} && break
+    URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://oshi.at | awk NR==2 | grep -o "https://oshi.at/[.A-Z0-9_a-z/]*")
+    [ -n "${URL}" ] && timestamp "Uploaded to oshi.at on count=$COUNT" >> ${SERVERLOG} && break
     ((COUNT++))
 done
 }
