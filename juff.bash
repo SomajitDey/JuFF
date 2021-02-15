@@ -1,8 +1,52 @@
-# Free ephemeral file sharing services:
-# https://transfer.sh
-# https://oshi.at/cmd
-# https://0x0.st/
-# https://file.io
+#
+#   This is the code for JuFF: a FOSS for instant messaging and filesharing
+#   with end-to-end encryption.
+#
+#   Install git, curl and bash. Then run this script with bash.
+#   If you are using Windows 10, turn on Windows Subsystem for Linux,
+#   install a Linux distro and run this script with bash.
+#
+#   Copyright 2021, Somajit Dey <somajit@users.sourceforge.net>
+#   License: GNU GPL-3.0-or-later
+#   Repo: https://github.com/SomajitDey/JuFF.git
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+#############################################################################
+#
+#   Features:
+#   1) Secure with public key encryption (end-to-end)
+#   2) Uses git as its backend 
+#   3) Semi-decentralized & distributed: every active peer mirror the main git repo
+#   4) Fully transparent
+#   5) No long-term cloud storage of user data, user data cannot be traced
+#   6) Everything is digitally signed and verified
+#   7) No GUI
+#
+#############################################################################
+#
+#   Free ephemeral file hosting servers used by JuFF:
+#   https://transfer.sh
+#   https://oshi.at
+#   https://file.io
+#   https://0x0.st (Not used here but might be in future)
+#
+#   Public key encryption and digital signature done with GNU Privacy Guard.
+#
+#   Git repos for the public-key-server and JuFF are hosted at GitHub.
+#
+#############################################################################
 
 INBOX=${HOME}'/Inbox_JuFF'  #default: You may customize this
 
