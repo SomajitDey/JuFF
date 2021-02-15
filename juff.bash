@@ -374,7 +374,7 @@ echo "Press Enter if the prompt is not available below"
 quit() {
     [ -n "${dPID}" ] && kill ${dPID} >/dev/null 2>&1
     tput cnorm ; tput sgr0 ; tput rmcup
-    wait ${postPID[@]}
+    wait ${postPID}
     exit ${1}
 }
 
@@ -388,9 +388,9 @@ local ITERATION=5
 local PAYLOAD="${1}"
 until ((COUNT == ITERATION)); do
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*")
-    [ -n "${URL}" ] && break
+    [ -n "${URL}" ] && echo 'UPloaded to file.io' && break
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://oshi.at | awk NR==2 | grep -o "https://oshi.at/[.A-Z0-9_a-z/]*")
-    [ -n "${URL}" ] && break
+    [ -n "${URL}" ] && echo 'Uploaded to oshi.at' && break
     ((COUNT++))
 done
 }
@@ -569,6 +569,7 @@ return 0
 }   
 
 backend() {
+declare -g postPID
 if [ ${PAGE} == '1' ]; then
     if [ ! -d "${REPO}/${CORRESPONDENT}" ]; then
         echo ${RED}'Recipient could not be found.'${NORMAL}
@@ -578,8 +579,9 @@ if [ ${PAGE} == '1' ]; then
         echo "Chatting with ${CORRESPONDENT}"
     fi
 else
+    [ -n "${postPID}" ] && wait postPID
     post "${CORRESPONDENT}" "${MESSAGE}" >> "${DELIVERY}" &
-    declare -g postPID+=(${!})
+    postPID=${!}
     unset MESSAGE
 fi
 } >> ${LASTACT_LOG}
