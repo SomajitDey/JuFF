@@ -53,7 +53,7 @@ declare -rg gpg="gpg"   #Ideally this should be the path to gpg or gpg2
 }
 
 whiteline() {
-echo `tput setab 7`$'\n'"${1}"$'\n'`tput sgr0``tput ed`
+echo `tput smso`"${1}"$'\n'`tput rmso``tput ed`
 }
 
 timestamp() {
@@ -319,7 +319,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             --always-trust \
             -o "${SENSETXT}" -d "${GARBTXT}" > /dev/null 2>&1 || { echo 'Text decryption failed' && continue ;}
             (cat "${SENSETXT}" && echo) | tee -a ${LATEST} >> ${CHAT} && rm "${SENSETXT}"
-            whiteline "${BLUE}------${MAGENTA}from ${BOLD}${RED}${FROM}${NORMAL}"$'\n' >> ${LATEST}
+            whiteline "$(timestamp "from ${FROM}")" >> ${LATEST}
         else
             timestamp "${RED}Download failed. Will retry again."
         fi
