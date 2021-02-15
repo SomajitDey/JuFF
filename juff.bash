@@ -1,4 +1,5 @@
 # Free ephemeral file sharing services:
+# https://transfer.sh
 # https://oshi.at/cmd
 # https://0x0.st/
 # https://file.io
@@ -388,7 +389,9 @@ local ITERATION=5
 local PAYLOAD="${1}"
 until ((COUNT == ITERATION)); do
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*")
-    [ -n "${URL}" ] && echo 'UPloaded to file.io' && break
+    [ -n "${URL}" ] && echo 'Uploaded to file.io' && break
+    URL=$(curl --upload-file ${PAYLOAD} https://transfer.sh/${PAYLOAD})
+    [ -n "${URL}" ] && echo 'Uploaded to transfer.sh' && break
     ((COUNT++))
 done
 }
