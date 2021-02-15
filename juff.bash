@@ -389,7 +389,7 @@ local PAYLOAD="${1}"
 until ((COUNT == ITERATION)); do
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*")
     [ -n "${URL}" ] && break
-    URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://0x0.st | grep -o "https://0x0.st/[A-Za-z0-9]*")
+    URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://oshi.at | awk NR==2 | grep -o "https://oshi.at/[.A-Z0-9_a-z/]*")
     [ -n "${URL}" ] && break
     ((COUNT++))
 done
