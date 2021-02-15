@@ -93,6 +93,7 @@ if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     cd ${REPO}
     git switch ${BRANCH}
     git branch -u 'origin/'${BRANCH}
+    git tag lastsync > /dev/null 2>&1
     read -ep 'Enter your name without any spaces [you may use _ and .]: ' RESPONSE
     set -- ${RESPONSE}
     git config --local user.name ${1}
@@ -274,7 +275,7 @@ declare -g PUSHOK=''
 } >> ${PUSH_LOG}
 
 queue() {
-    for LINE in $(git log --name-only --pretty=format:%H:%an#%ae#%at last.. -- "${GITBOX}"); do
+    for LINE in $(git log --name-only --pretty=format:%H:%an#%ae#%at lastsync.. -- "${GITBOX}"); do
         if [ "${LINE}" == "${LINE##*/}" ]; then
             local COMMIT="${LINE%:*}"
             local FROM="${LINE%#*}" && FROM="${FROM#*:}"
@@ -287,11 +288,11 @@ queue() {
             git restore -q --source=HEAD "${LINE}"
         fi
     done
-    git tag -d last > /dev/null 2>&1
+    git tag -d lastsync > /dev/null 2>&1
+    git tag lastsync > /dev/null 2>&1
 } >> ${NOTIFICATION}
 
 pull() {
-git tag last > /dev/null 2>&1
 git pull -q --ff-only origin "${BRANCH}" > /dev/null 2>&1
 [ ${?} != 0 ] && timestamp "${RED}Pull failed. Check internet connectivity" && return 1
 } >> ${NOTIFICATION}
