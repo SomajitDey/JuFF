@@ -31,6 +31,7 @@ declare -rg PUSH_LOG=${LOGS}'/push.log'
 declare -rg LASTACT_LOG=${LOGS}'/lastaction.log'
 declare -rg NOTIFICATION=${LOGS}'/notification.log'
 declare -rg DELIVERY=${LOGS}'/delivery.log'
+declare -rg SERVERLOG=${LOGS}'/server.log'
 declare -rg DLQUEUE=${INBOX}'/.dlqueue'
 declare -rg BUFFERGARB='/tmp/.JuFF'
 declare -rg BUFFERSENSE=${INBOX}'/.buffer'
@@ -388,10 +389,10 @@ local COUNT=0
 local ITERATION=5
 local PAYLOAD="${1}"
 until ((COUNT == ITERATION)); do
+    URL=$(curl -sf --upload-file "${PAYLOAD}" "https://transfer.sh/${PAYLOAD}")
+    [ -n "${URL}" ] && timestamp "Uploaded to transfer.sh on count=$COUNT" >> ${SERVERLOG} && break
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*")
-    [ -n "${URL}" ] && echo 'Uploaded to file.io' && break
-    URL=$(curl --upload-file ${PAYLOAD} https://transfer.sh/${PAYLOAD})
-    [ -n "${URL}" ] && echo 'Uploaded to transfer.sh' && break
+    [ -n "${URL}" ] && timestamp "Uploaded to file.io on count=$COUNT" >> ${SERVERLOG} && break
     ((COUNT++))
 done
 }
