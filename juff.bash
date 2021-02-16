@@ -121,7 +121,7 @@ cd ${OLDPWD}
 }
 
 config() {
-echo "Configuring ..."
+echo "Configuring ..."$'\n'
 curl -I "${TRUSTREMOTE}" > /dev/null 2>&1 || { echo "Cannot proceed without internet connection...connect & relaunch." && exit;} 
 mkdir -p ${INBOX}
 mkdir -p ${DOWNLOADS}
@@ -138,13 +138,13 @@ if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     git clone --quiet "${TRUSTREMOTE}" "${TRUSTLOCAL}" || { echo "Perhaps an issue with your network"; exit;}
     git clone --quiet "${REMOTE}" "${REPO}" || { echo "Perhaps an issue with your network"; exit;}
     cd ${REPO}
-    git switch ${BRANCH}
-    git branch -u 'origin/'${BRANCH}
+    git switch -q "${BRANCH}"
+    git branch -q -u "origin/${BRANCH}"
     git tag lastsync > /dev/null 2>&1
-    read -ep 'Enter your name without any spaces [you may use _ and .]: ' RESPONSE
+    read -ep $'\n''Enter your name without any spaces [you may use _ and .]: ' RESPONSE
     set -- ${RESPONSE}
     git config --local user.name ${1}
-    read -ep 'Enter your emailid (this will be verified): ' RESPONSE
+    read -ep $'\n''Enter your emailid (this will be verified): ' RESPONSE
     set -- ${RESPONSE}
     git config --local user.email ${1}
 else
@@ -160,13 +160,13 @@ declare -rg GITBOX=${REPO}'/'${SELF}
 declare -rg VERIFIED_SELF=${TRUSTLOCAL}'/'${SELF}   #Contains pubkey (verified through mail) signed by admin
 declare -rg ABOUT=${GITBOX}'/about.txt'
 
-echo "Welcome ${SELF}"
+echo $'\n'"Welcome ${SELF}"$'\n'
 
 key() {
 #One can encrypt this PASSWDFILE with a memorable password/PIN which will then become the juff passwd
 rm -rf "${GPGHOME}"
 if [ -f "${PORT}" ]; then
-    echo "Extracting keys from ${PORT##*/}..."
+    echo "Extracting keys from ${PORT##*/}..."$'\n'
     tar -xzf ${PORT} --directory ${INBOX}
     local FLAG='false'
     [ ! -e "${KEYRING}" ] && echo 'Your JuFF key is broken : No keyring found. Exiting...' && FLAG='true'
@@ -181,10 +181,10 @@ if [ -f "${PORT}" ]; then
     fi
     unset FLAG
 else
-    echo 'Press Enter to proceed with the creation of new key.' 
-    echo 'If you already have a key, close this with Ctrl + C and relaunch after installing the key as' ${PORT}
+    echo 'a) Press Enter to proceed with the creation of new key.' 
+    echo 'b) If you already have a key, close this with Ctrl-c and relaunch after installing the key as'$'\n'"${PORT}"$'\n'
     read
-    echo "Creating new credentials..."
+    echo "Creating new credentials..."$'\n'
     mkdir -p ${GPGHOME}
     touch "${KEYRING}"
     local SEC_HASH="$(echo ${EPOCHSECONDS}${SELF}${SECONDS} | sha256sum)"
@@ -212,7 +212,7 @@ else
         REMOTE="https://JuFF-GitHub:${GITHUBPAT}@github.com/JuFF-GitHub/JuFF---Just-For-Fun.git"
         git remote set-url --push origin "${REMOTE}"
         echo ${REMOTE} > ${PATFILE}
-        echo 'Uploading your public key for registration...'
+        echo 'Uploading your public key for registration...'$'\n'
         post "${REGISTRAR}" "${EXPORT_PUB}" "DONTSIGN"
         daemon 1
         tail -n 1 "${DELIVERY}"
@@ -224,16 +224,16 @@ else
     if [ -n "${SELFKEYID}" ]; then
         echo ${SELFKEYID} >> ${PASSWDFILE}
         echo "Your key id is: "
-        echo ${YELLOW}${SELFKEYID}${NORMAL}
+        echo ${YELLOW}${SELFKEYID}${NORMAL}$'\n'
         echo "Now email this key id to ${MAILINGLIST} from ${SELF_EMAIL} to complete your registration"
         [ "${PUSHOK}" != 'true' ] && echo "Also attach ${EXPORT_PUB} with your mail. Thank you."
         echo "Once verification is done you will receive a message both here and at ${SELF_EMAIL}"
-        echo ${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"
+        echo ${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"$'\n'
         echo "See ya then!"
         cd ${INBOX} ; tar -czf ${PORT} .gnupg ; cd ${OLDPWD}
     else
-        echo "Key creation failed...something went wrong."
-        echo "Remove ${INBOX} with sudo rm -r ${INBOX} and lanch me again."
+        echo "Key creation failed...something went wrong."$'\n'
+        echo "Remove ${INBOX} with sudo rm -r ${INBOX} and launch me again."$'\n'
     fi
     exit
 fi
@@ -537,9 +537,9 @@ display() {
         [ -z "${NOTIFY}" ] && [ -z "${REPAINT}" ] && return
         tput home
         if [ -z "${EXITLOOP}" ]; then
-            tput el && echo 'Nav mode ON: Esc = quit or go back ; UP, DOWN, LEFT, RIGHT for navigation'
+            tput el && echo "${BOLD}${UNDERLINE}Nav mode ON: Esc = quit or go back ; UP, DOWN, LEFT, RIGHT for navigation${NORMAL}"
         else
-            tput el && echo 'Input mode ON: Press Enter to switch to Nav mode'
+            tput el && echo "${BOLD}${UNDERLINE}Input mode ON: Press Enter to switch to Nav mode${NORMAL}"
         fi
         tput el; tput cud1 && tput el
         tput home ; tput cud ${DROP} ; tput ed
@@ -679,9 +679,9 @@ done
 #Main
 
 if [ ! -d "${INBOX}" ]; then 
-    echo "My defult inbox ${INBOX} doesn't exist"
-    echo "Press Enter if you want me to proceed and create it." 
-    echo "Type in the directory path if you have any other inbox in mind."
+    echo $'\n'"My defult inbox ${INBOX} doesn't exist:"$'\n'
+    echo "1) Press Enter if you want me to proceed and create it." 
+    echo "2) Type in the directory path if you have any other inbox in mind."$'\n'
     read -ep 'Type inbox pathname here: '
     if [ -n "${REPLY}" ]; then 
         [ "${REPLY: -1}" == '/' ] && REPLY="${REPLY%/*}"
@@ -694,15 +694,14 @@ if [ ! -d "${INBOX}" ]; then
         fi
         [ -f "${INBOX}" ] && echo 'This is a file not a directory' && exit
         if [ ! -d "${INBOX}" ]; then
-            echo "Should I go ahead and create ${INBOX} ?"
+            echo $'\n'"Should I go ahead and create ${INBOX} ? [Press any key to proceed. Ctrl-c to exit]"
         else
-            echo "Should I start configuring ${INBOX} now?"
+            echo $'\n'"Should I start configuring ${INBOX} now? [Press any key to proceed. Ctrl-c to exit]"
         fi
-        echo "Press any key to proceed. Ctrl-c to exit."
-        read -n1
+        read -sn1
     fi
 fi
-echo "Inbox is at ${INBOX}"
+echo $'\n'"Inbox is at ${INBOX}"$'\n'
 readonly_globals
 config
 CORRESPONDENT=${1}
