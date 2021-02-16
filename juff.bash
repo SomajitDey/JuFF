@@ -247,7 +247,7 @@ if [ -e "${VERIFIED_SELF}" ]; then
         key
     fi
     
-    mkdir -p ${GITBOX}
+    mkdir -p "${GITBOX}"
     [ ! -e "${ABOUT}" ] && \
     echo "This is the JuFF postbox of $SELF_NAME.$'\n'For verified pubkey, refer to $TRUSTREMOTE" > ${ABOUT}
     key
@@ -631,7 +631,7 @@ if [ ${PAGE} == '1' ]; then
         echo "Chatting with ${CORRESPONDENT}"
     fi
 else
-    [ -n "${postPID}" ] && wait "${postPID}"
+    [ -n "${postPID}" ] && wait "${postPID}"    #Wait for previous post to finish so that gpg runs 1 instance at a time; otherwise error.
     post "${CORRESPONDENT}" "${MESSAGE}" >> "${DELIVERY}" &
     postPID=${!}
     unset MESSAGE
