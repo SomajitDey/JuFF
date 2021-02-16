@@ -300,6 +300,8 @@ declare -g PUSHOK=''
             echo ${YELLOW}'Delivered!'${NORMAL} > "${DELIVERY}"
             PUSHOK='true'
         else
+            #In the following, we do rebase when push fails once as above because of someone else pushing before us.
+            #This is done to keep the branch linear and avoid any merge prompt at pull asking for a merge commit message.
             for i in {1..10}; do
                 git add --all > /dev/null 2>&1 && { git diff --quiet HEAD || git commit -qm 'by juff-daemon';}
                 git fetch --quiet origin "${BRANCH}"
