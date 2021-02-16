@@ -155,6 +155,7 @@ fi
 
 declare -rg SELF_NAME=`git config --local user.name`
 declare -rg SELF_EMAIL=`git config --local user.email`
+[ -z "${SELF_EMAIL}" ] && echo "Your inbox is corrupt. Please remove ${YELLOW}${INBOX}${NORMAL} and launch me afresh." && exit
 declare -rg SELF=${SELF_NAME}'#'${SELF_EMAIL}
 declare -rg GITBOX=${REPO}'/'${SELF}
 declare -rg VERIFIED_SELF=${TRUSTLOCAL}'/'${SELF}   #Contains pubkey (verified through mail) signed by admin
