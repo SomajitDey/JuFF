@@ -433,16 +433,27 @@ quit() {
 post() {
 local URL=''
 upload(){
+local NSERVER=3 #No. of ephemeral file hosting servers
+#SEED needs to be random for fair load distribution. Decides what server to upload to first before trying others on failure.
+local SEED=${EPOCHSECONDS}
 local COUNT=0
-local ITERATION=5
+local ITERATION=$((NSERVER*5))
 local PAYLOAD="${1}"
 until ((COUNT == ITERATION)); do
+case $(((SEED+COUNT)%NSERVER)) in
+0)
     URL=$(curl -sf --no-epsv --upload-file "${PAYLOAD}" "https://transfer.sh/${PAYLOAD##*/}")
     [ -n "${URL}" ] && timestamp "Uploaded to transfer.sh on count=$COUNT" >> ${SERVERLOG} && break
+    ;;
+1)
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*")
     [ -n "${URL}" ] && timestamp "Uploaded to file.io on count=$COUNT" >> ${SERVERLOG} && break
+    ;;
+2)
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://oshi.at | awk NR==2 | grep -o "https://oshi.at/[.A-Z0-9_a-z/]*")
     [ -n "${URL}" ] && timestamp "Uploaded to oshi.at on count=$COUNT" >> ${SERVERLOG} && break
+    ;;
+esac
     ((COUNT++))
 done
 }
