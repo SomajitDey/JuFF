@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 #   This is the code for JuFF: a FOSS for instant messaging and filesharing
 #   with end-to-end encryption.
