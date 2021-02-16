@@ -435,7 +435,7 @@ local URL=''
 upload(){
 local NSERVER=3 #No. of ephemeral file hosting servers
 #SEED needs to be random for fair load distribution. Decides what server to upload to first before trying others on failure.
-local SEED=${EPOCHSECONDS}
+local SEED=${RANDOM}
 local COUNT=0
 local ITERATION=$((NSERVER*5))
 local PAYLOAD="${1}"
