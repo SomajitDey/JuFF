@@ -421,9 +421,9 @@ echo "Press Enter if the prompt is not available below"
 }
 
 quit() {
+    [ -n "${postPID}" ] && wait "${postPID}"
     [ -n "${dPID}" ] && kill ${dPID} >/dev/null 2>&1
     tput cnorm ; tput sgr0 ; tput rmcup
-    wait ${postPID}
     exit ${1}
 }
 
@@ -630,7 +630,7 @@ if [ ${PAGE} == '1' ]; then
         echo "Chatting with ${CORRESPONDENT}"
     fi
 else
-    [ -n "${postPID}" ] && wait postPID
+    [ -n "${postPID}" ] && wait "${postPID}"
     post "${CORRESPONDENT}" "${MESSAGE}" >> "${DELIVERY}" &
     postPID=${!}
     unset MESSAGE
