@@ -122,7 +122,11 @@ cd ${OLDPWD}
 
 config() {
 echo "Configuring ..."$'\n'
+[ -n "$(which git)" ] || { echo "Install git and relaunch me" && exit;}
+[ -n "$(which curl)" ] || { echo "Install curl and relaunch me" && exit;}
+[ -n "$(which xargs)" ] || { echo "Install xargs and relaunch me" && exit;}
 curl -I "${TRUSTREMOTE}" > /dev/null 2>&1 || { echo "Cannot proceed without internet connection...connect & relaunch." && exit;} 
+echo "Please don't take me off internet. Please...Otherwise I will develop withdrawal symptoms"$'\n'
 mkdir -p ${INBOX}
 mkdir -p ${DOWNLOADS}
 mkdir -p ${LOGS}
