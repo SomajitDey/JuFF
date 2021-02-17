@@ -122,6 +122,7 @@ cd ${OLDPWD}
 
 config() {
 echo "Configuring ..."$'\n'
+chmod +t "${INBOX}"; chmod og-rw "${INBOX}"; chmod og-rw "${INBOX}"/*; chmod og-rw "${LATEST}"; chmod og-rw "${DOWNLOADS}"
 [ -n "$(which git)" ] || { echo "Install git and relaunch me" && exit;}
 [ -n "$(which curl)" ] || { echo "Install curl and relaunch me" && exit;}
 [ -n "$(which xargs)" ] || { echo "Install xargs and relaunch me" && exit;}
@@ -159,7 +160,7 @@ fi
 
 declare -rg SELF_NAME=`git config --local user.name`
 declare -rg SELF_EMAIL=`git config --local user.email`
-[ -z "${SELF_EMAIL}" ] && echo "Your inbox is corrupt. Please remove ${YELLOW}${INBOX}${NORMAL} and launch me afresh." && exit
+[ -z "${SELF_EMAIL}" ] && echo "Your inbox is corrupt. Please remove ${YELLOW}${INBOX}${NORMAL} with sudo and launch me afresh." && exit
 declare -rg SELF=${SELF_NAME}'#'${SELF_EMAIL}
 declare -rg GITBOX=${REPO}'/'${SELF}
 declare -rg VERIFIED_SELF=${TRUSTLOCAL}'/'${SELF}   #Contains pubkey (verified through mail) signed by admin
@@ -173,6 +174,7 @@ rm -rf "${GPGHOME}"
 if [ -f "${PORT}" ]; then
     echo "Extracting keys from ${PORT##*/}..."$'\n'
     tar -xzf ${PORT} --directory ${INBOX}
+    chmod og-rw "${GPGHOME}"; chmod og-rw "${GPGHOME}"/*
     local FLAG='false'
     [ ! -e "${KEYRING}" ] && echo 'Your JuFF key is broken : No keyring found. Exiting...' && FLAG='true'
     { read GPGPASSWD ; read SELFKEYID; } < ${PASSWDFILE} || \
@@ -236,6 +238,7 @@ else
         echo ${UNDERLINE}"Verification may take a while so please check on me later.${NORMAL}"$'\n'
         echo "See ya then!"
         cd ${INBOX} ; tar -czf ${PORT} .gnupg ; cd ${OLDPWD}
+        chmod og-rw "${GPGHOME}"; chmod og-rw "${GPGHOME}"/*
     else
         echo "Key creation failed...something went wrong."$'\n'
         echo "Remove ${INBOX} with sudo rm -r ${INBOX} and launch me again."$'\n'
