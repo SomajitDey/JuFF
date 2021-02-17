@@ -33,9 +33,18 @@ at Somajit/JuFF-KeyServer at GitHub.
 
 Now you can start sending texts and share files with people whose public keys are already 
 hosted. Because of the email verification done before hosting every public key, you can trust
-all the keys found at the abovementioned key-server, as I can show you the email that records the 
-corresponding KeyID. In future, the registration might become automated, and the KeyID might need
-to be sent to a public mailing-list instead.
+all the keys found at the abovementioned key-server. In future, the registration might become 
+automated, and the KeyID might need to be sent to a public mailing-list instead. (See the end
+of this text for more future directions).
+
+File sharing is easy. Just enter the absolute path of the file to be sent at the appropriate 
+prompt, or if you are using a Linux-box, just drag-n-drop the file at the prompt.
+
+JuFF is not meant for syncing across multiple devices. However, that by no means reduces 
+portability. All data assciated with your JuFF account stays within your JuFF inbox. Therefore, 
+you can just carry it with you, on a thumbdrive e.g.. On a new machine, just direct JuFF to that
+inbox, and it takes on from there. At your option, you can also keep your JuFF inbox encrypted.
+However, JuFF won't do that encryption as of now, you gotta do it on your own.
 
 What happens when you send something?
 
@@ -86,11 +95,11 @@ them again. Thus, nothing is lost even if you face connection problems.
 
 What if you lose your private key or my_JuFF.key?
 
-You simply tell JuFF to create a new key-pair for you. Then again you email me the key-ID for 
-authentication to change your public key on the key-server. Once I update your public key,
-all new correspondence use that new public key only. Even if an attacker gets hold of your old
-private key, he won't be able to succeed, because the recipient won't be able to match his 
-signature using your new public key.
+You simply tell JuFF to create a new key-pair for you. Then again you email me the new key-ID as an 
+authorization to change your public key on the key-server. Once I update your public key, all new 
+correspondence would use that new public key only. Even if an attacker gets hold of your old
+private key, he won't be able to succeed, because the recipient won't be able to match his signature 
+against your updated public key.
 
 How is this implemented? The public keys are imported just in time and not stored apriori. And here
 is another key thing. To verify files unique to a commit, JuFF imports only that version of the 
