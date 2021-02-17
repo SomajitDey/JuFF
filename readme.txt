@@ -1,19 +1,22 @@
+JuFF---Just For Fun (C)2021, Somajit Dey <somajit@users.sourceforge.net>
+License: GPL-v3-or-later
+
 "Hello World. I am JuFF :)"
 
-JuFF is a secure messaging & file-sharing app run as a single bash script
+JuFF is a secure messaging & file-sharing app run from an open bash script,
 with git as its backend. All messages and files going through JuFF are strongly
 encrypted and signed using GNU Privacy Guard. There is no long-term cloud storage
-involved, your files and texts spend in a server only for a short while (i.e. 
-until you download them), and that too in a fully encrypted form.
+involved, your files and texts live in a server only for a short while (i.e. until 
+you download them or till a preset expiry), and that too in a fully encrypted form.
 
 The most exciting thing other than its promise of security is its minimalism. JuFF
-is run by a single bash script ! You just need to have bash, git & curl installed,
+comes as a single bash script! You just need to have bash, git & curl installed;
 and they usually are in standard Linux systems, including WSL. Just run JuFF.bash 
-and you have a chat+file-sharing app !
+and you have a totally secure chat+file-sharing app!
 
 So lets see how it all works.
 
-In GitHub JuFF has a dedicated repo. You get an access token to it from me or others
+In GitHub, JuFF has a dedicated repo. You get an access token to it from me or others
 already using juFF, so that you can use JuFF without having a GitHub account yourself.
 This access token is just an entry ticket to JuFF if you will, not your password 
 or anything that private. JuFF asks for that token from you on the first run only, and 
@@ -22,7 +25,7 @@ never again once your local inbox is setup.
 On the first run, JuFF sets up the local inbox on your system, asks for your name & email
 , creates a private-public key-pair corresponding to that name & email combination and
 gives you your key-ID and a private my_JuFF.key file that holds your private key and SHA-256
-passphrase. So save that file someplace safe as you would need it to gain access to your JuFF 
+passphrase. So, save that file someplace safe as you would need it to gain access to your JuFF 
 account on any other machine. Now you just gotta email that key-ID to me. In the background,
 JuFF sends your public key to me. I then verify your public key with the keyID you send over 
 email, and hence your email verification is done. Following that, the public key is hosted
@@ -30,9 +33,9 @@ at Somajit/JuFF-KeyServer at GitHub.
 
 Now you can start sending texts and share files with people whose public keys are already 
 hosted. Because of the email verification done before hosting every public key, you can trust
-all the keys found at the above key-server, as I can show you the email that records the 
-corresponding KeyID. In future the registration will become automated, and the KeyID sent to
-a public mailing-list instead.
+all the keys found at the abovementioned key-server, as I can show you the email that records the 
+corresponding KeyID. In future, the registration might become automated, and the KeyID might need
+to be sent to a public mailing-list instead.
 
 What happens when you send something?
 
@@ -102,5 +105,12 @@ latest commit, and the attacker would be defeated. This way, we don't need revoc
 anymore.
 
 Future work:
-JuFF can be made to make only signed commits to the JuFF repo. The public keys may already be added to
-GitHub so every commit can be verified and displayed as so for transparency.
+
+1) Users may choose to be anonymous. If a user chooses to be so, his/her JuFF account will be the SHA-256
+hash of his/her name#email. So, spammers cannot get his/her validated email id from the JuFF key-server.
+Someone who knows his/her name & email both, however, will be able to send him/her messages. But one can
+still choose a name and not tell others about it...which then makes his/her JuFF account totally anonymous 
+even if others know his/her email id.
+
+2) JuFF can be made to make only signed commits to the JuFF repo. The public keys may already be added to
+GitHub so every commit can be verified and displayed as such, for transparency.
