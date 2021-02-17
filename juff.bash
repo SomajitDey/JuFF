@@ -674,7 +674,7 @@ while [ -n "${PAGE}" ]; do
         fi
         [ -n "${CORRESPONDENT}" ] && backend ;;
     2)
-        frontend "${INBOX}/${CORRESPONDENT}.txt" 'Enter message or drag and drop files to send'
+        frontend "${INBOX}/${CORRESPONDENT}.txt" 'Enter message or path of the file to be sent [you may also drag & drop the file below]'
         case ${?} in 
         0)  MESSAGE="${INPUT}" ;;
         1 | 3 ) PAGE='1' ; PREV_CORR="${CORRESPONDENT}"
