@@ -48,6 +48,47 @@
 #   Git repos for the public-key-server and JuFF are hosted at GitHub.
 #
 #############################################################################
+#
+#   To create your own ultra-secure chatroom:
+#   1) Create a free account at GitHub etc. that you won't be using for anything else.
+#   2) Create a public (bare) repo there.
+#   3) Assign the default branch to variable BRANCH below.
+#   4) Assign the upstream url to REMOTE.
+#   5) Make the default branch protected such that it is linear and none can force push to it
+#   or delete it.
+#   6) Create access token(s) that are as restricted in scope as possible, definitely without 
+#   permission to delete the repo. Send this access token along with this code to anybody you 
+#   want to join your chatroom.
+#   7) Create another public repo at GitHub etc. for hosting the public keys (i.e. key-server).
+#   Only you shall push to this repo., so no need for branch-protection or limited scope tokens.
+#   8) Assign the url of this repo to TRUSTREMOTE below.
+#   9) Create pubkeys for your admin account (such as registration#juff@github.com) and host at 
+#   key-server in a file with name=<your admin account name>
+#   10) Create a directory for admin account at REMOTE with name = <your admin account name> and  
+#   add an "about" file inside it stating that this is the postbox for your account.
+#   **Now host the pubkeys you get from your new members at key-server with filename=<account name>,
+#   after cross-checking with the KEY_ID they send you from their registered email (i.e. email 
+#   verification) and notify them accordingly.
+#
+#############################################################################
+#
+#   TODO:
+#   1) Add feature: message to all...message does not need to be encrypted, 
+#   but needs to be signed. Host the message within directory "all" at REMOTE.
+#   Everybody checks out "all/*" after every sync.
+#   2) Add feature: create groups...group messages need to be encrypted
+#   with a group public key. The other route is to encrypt with every group mem-
+#   ber's pubkey by the sender...would take a huge time for large groups.
+#   Encrypted group messages may be hosted at REMOTE for eternity as in large groups, the group
+#   private key may be compromised anyway.
+#   3) Add feature: Send single message to multiple persons encrypting with individual pubkeys.
+#   4) Backend: Kanban style cards for hosting the texts after download. This helps list them
+#   according to creation time (alphabetically) (ls -t -1) even if they are downloaded randomly.
+#   Still have the option to condense all chats with a correspondent in one text file for portablity
+#   (may be a command line option).  
+#   5) Add feature: Right key at page 2 shows timestamped view...without it one sees focussed view of chat.
+#
+#############################################################################
 
 INBOX=${HOME}'/Inbox_JuFF'  #default: You may customize this
 
