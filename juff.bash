@@ -5,9 +5,9 @@
 #
 #   Install git, curl and bash. Then run this script with bash.
 #   If you are using Windows 10, turn on Windows Subsystem for Linux,
-#   install a Linux distro and run this script with bash.
+#   install a Linux distro such as Ubuntu and run this script with bash.
 #
-#   Copyright 2021, Somajit Dey <somajit@users.sourceforge.net>
+#   Copyright 2021, Somajit Dey <dey.somajit@gmail.com>
 #   License: GNU GPL-3.0-or-later
 #   Repo: https://github.com/SomajitDey/JuFF.git
 #
@@ -133,7 +133,7 @@ declare -rg EXPORT_PUB=${GPGHOME}'/pubkey.asc'
 declare -rg PASSWDFILE=${GPGHOME}'/passphrase.txt'
 declare -rg PATFILE=${GPGHOME}'/access_token.txt'
 declare -rg KEYRING=${GPGHOME}'/pubring.kbx'
-declare -rg MAILINGLIST='somajit@users.sourceforge.net'
+declare -rg MAILINGLIST='dey.somajit@gmail.com'
 declare -g GPGPASSWD
 declare -g SELFKEYID
 declare -rg REGISTRAR='registration#juff@github.com'
