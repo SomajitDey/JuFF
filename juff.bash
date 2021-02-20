@@ -164,7 +164,6 @@ cd ${OLDPWD}
 
 config() {
 echo "Configuring ..."$'\n'
-chmod +t "${INBOX}"; chmod og-rw "${INBOX}"; chmod og-rw "${INBOX}"/*; chmod og-rw "${LATEST}"; chmod og-rw "${DOWNLOADS}"
 [ -n "$(which git)" ] || { echo "Install git and relaunch me" && exit;}
 [ -n "$(which curl)" ] || { echo "Install curl and relaunch me" && exit;}
 [ -n "$(which xargs)" ] || { echo "Install xargs and relaunch me" && exit;}
@@ -179,6 +178,8 @@ echo >> ${PUSH_LOG}
 echo >> ${NOTIFICATION}
 echo >> ${DELIVERY}
 echo >> ${LASTACT_LOG}
+touch "${LATEST}"
+chmod +t "${INBOX}"; chmod og-rw "${INBOX}"; chmod og-rw "${INBOX}"/*; chmod og-rw "${LATEST}"; chmod og-rw "${DOWNLOADS}"
 
 if [ ! -d "${TRUSTLOCAL}/.git" ]; then
     local TOREGISTER='TRUE'
