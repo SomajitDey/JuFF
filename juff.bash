@@ -137,7 +137,8 @@ declare -rg MAILINGLIST='somajit@users.sourceforge.net'
 declare -g GPGPASSWD
 declare -g SELFKEYID
 declare -rg REGISTRAR='registration#juff@github.com'
-declare -rg gpg="gpg"   #Ideally this should be the path to gpg or gpg2 
+declare -rg gpg="gpg"   #Ideally this should be the path to gpg or gpg2 + options
+declare -rg UIUPDATE="$(mktemp /tmp/uiupdate.XXXXXXXX)" #Flag file for communication between parallel processes (bg & fg)
 }
 
 whiteline() {
@@ -419,6 +420,8 @@ for FILE in $(ls "${DLQUEUE}") ; do
             -o "${SENSETXT}" -d "${GARBTXT}" > /dev/null 2>&1 || { echo 'Text decryption failed' && continue ;}
             (cat "${SENSETXT}" && echo) | tee -a ${LATEST} >> ${CHAT} && rm "${SENSETXT}"
             whiteline "$(timestamp "from ${FROM}")" >> ${LATEST}
+            touch "${UIUPDATE}"
+
         else
             timestamp "${RED}Download failed. Will retry again."
         fi
@@ -438,6 +441,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             -o "${BUFFEREDFILE}" -d "${DOWNLOADED}" > /dev/null 2>&1 || { echo 'File decryption failed' && continue ;}
             mv --backup=numbered "${BUFFEREDFILE}" "${DIR}"
             echo "${CYAN}${FROM} sent ${BUFFEREDFILE##*/}${NORMAL}"$'\n' | tee -a ${LATEST} >> ${CHAT}
+            touch "${UIUPDATE}"
         else
             timestamp "${RED}Download failed. Will retry again."
         fi
@@ -574,6 +578,7 @@ else
 fi
 local CHAT="${INBOX}/${TO}.txt"
 echo -e ${2}$'\n' >> "${CHAT}"
+touch "${UIUPDATE}"
 }
 
 frontend() {
@@ -648,6 +653,10 @@ unset INPUT ; unset EXITLOOP
 while [ -z "${INPUT}" ]; do
     while [ -z "${EXITLOOP}" ]; do
         logwatch
+        if [ -e "${UIUPDATE}" ]; then
+            rm "${UIUPDATE}"
+            REPAINT='true' && SHOWINGTILL=''
+        fi
         if [ -n "${REPAINT}" ]; then
             REPAINT='' && NOTIFY='true'
             local WINDOW=$(set -- $(wc -l ${FILE}) && echo $1)
