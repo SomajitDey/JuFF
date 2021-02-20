@@ -1,4 +1,4 @@
-JuFF---Just For Fun (C)2021, Somajit Dey <somajit@users.sourceforge.net>
+JuFF---Just For Fun (C)2021, Somajit Dey <dey.somajit@gmail.com>
 License: GPL-v3-or-later
 
 "Hello World. I am JuFF :)"
