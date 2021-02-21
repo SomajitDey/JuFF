@@ -89,6 +89,8 @@
 #   Still have the option to condense all chats with a correspondent in one text file for portablity
 #   (may be a command line option).  
 #   5) Add feature: Right key at page 2 shows timestamped view...without it one sees focussed view of chat.
+#   6) Have .tmp directory inside INBOX and create temp files there with mktemp. Empty .tmp on restart.
+#   7) Have a lockfile in INBOX stating another instance of JuFF is on for the same INBOX or account.
 #
 #############################################################################
 #
@@ -540,14 +542,15 @@ if [ -n "${DONTSIGN}" ]; then
     $gpg -a --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" \
-    -o "${BLOB}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo 'Text encryption failed' && return 1 ;}
+    -o "${CACHETXT}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo 'URL encryption failed' && return 1 ;}
 else
     $gpg -a --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
     --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
-    -o "${BLOB}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo 'Text encryption failed' && return 1 ;}
+    -o "${CACHETXT}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo 'URL encryption failed' && return 1 ;}
 fi
-echo ${GREEN}'Message posted for delivery. To be delivered on next push.'${NORMAL}
+#Now put this encrypted URL card ATOMICALLY within REPO so that next push adds it once and for all.
+mv "${CACHETXT}" "${BLOB}" && echo ${GREEN}'Message posted for delivery. To be delivered on next push.'${NORMAL}
 }
 
 [ ! -d "${POSTBOX}" ] && echo ${RED}"ERROR: ${POSTBOX} could not be found. Sending failed."${NORMAL} && return 1
@@ -585,7 +588,7 @@ else
     fi
     echo "${GREEN}Fully encrypted. Uploading now...${NORMAL}"
     upload "${CACHETXT}"
-    [ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity."${NORMAL} && return 3
+    [ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity."${NORMAL} && rm -f "${CACHETXT}" && return 3
     card "${URL}" ".txt"
 fi
 local CHAT="${INBOX}/${TO}.txt"
