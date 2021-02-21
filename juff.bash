@@ -346,7 +346,7 @@ local FILES="${KEYOF}"
     if [ ${?} == '0' ]; then 
         echo 'Key import succeeded'
     else
-        echo 'Key import failed'
+        echo "${RED}Key import failed${NORMAL}"
     fi
     rm "${FILES}" ; git restore -q --source=HEAD "${FILES}" #For resetting everything back to current HEAD
 #done
@@ -389,6 +389,7 @@ declare -g PUSHOK=''
 
 queue() {
     for LINE in $(git log --name-only --pretty=format:%H:%an#%ae#%at lastsync.. -- "${GITBOX}"); do
+        echo "${YELLOW}You've got mail...importing${NORMAL}"
         if [ "${LINE}" == "${LINE##*/}" ]; then
             local COMMIT="${LINE%:*}"
             local FROM="${LINE%#*}" && FROM="${FROM#*:}"
