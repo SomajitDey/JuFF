@@ -569,7 +569,7 @@ if [ -f "${2}" ]; then
     --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
     -o "${CACHEFILE}" -e "${2}" > /dev/null 2>&1 || { echo "${RED}File encryption failed${NORMAL}" && return 1 ;}
     fi
-    echo "${GREEN}Fully encrypted. Uploading now...${NORMAL}"
+    echo "${GREEN}Fully encrypted. Uploading file now...${NORMAL}"
     upload "${CACHEFILE}"
     [ -z "${URL}" ] && echo ${RED}"ERROR: File upload failed. Check internet connectivity."${NORMAL} && return 2
     card "${URL} -o ${BUFFERGARB}/${2##*/}" ".dl"
@@ -586,7 +586,7 @@ else
     --always-trust -r "${TO}" -s -u "${SELFKEYID}" \
     -o "${CACHETXT}" -e "${CACHEUL}" > /dev/null 2>&1 || { echo "${RED}Text encryption failed${NORMAL}" && return 1 ;}
     fi
-    echo "${GREEN}Fully encrypted. Uploading now...${NORMAL}"
+    echo "${GREEN}Fully encrypted. Uploading text now...${NORMAL}"
     upload "${CACHETXT}"
     [ -z "${URL}" ] && echo ${RED}"ERROR: Text upload failed. Check internet connectivity."${NORMAL} && rm -f "${CACHETXT}" && return 3
     card "${URL}" ".txt"
