@@ -29,7 +29,7 @@
 #   Features:
 #   1) Secure with public key encryption (end-to-end)
 #   2) Uses git as its backend 
-#   3) Semi-decentralized & distributed: every active peer mirror the main git repo
+#   3) Semi-decentralized & distributed: every active peer mirrors the main git repo
 #   4) Fully transparent
 #   5) No long-term cloud storage of user data, user data cannot be traced
 #   6) Everything is digitally signed and verified
@@ -49,6 +49,8 @@
 #
 #############################################################################
 #
+#   If you have already chatted with a friend or two using this script and you liked it so much
+#   that you wanna create your own chatroom, the following is for you.
 #   To create your own ultra-secure chatroom:
 #   1) Create a free account at GitHub etc. that you won't be using for anything else.
 #   2) Create a public (bare) repo there.
@@ -87,6 +89,15 @@
 #   Still have the option to condense all chats with a correspondent in one text file for portablity
 #   (may be a command line option).  
 #   5) Add feature: Right key at page 2 shows timestamped view...without it one sees focussed view of chat.
+#
+#############################################################################
+#
+#   Known issues:
+#   1) Sometimes git pull at REPO would fail even though you have internet. Resolve manually as follows:
+#   cd to REPO and do git pull...if the problem is around ORIG_HEAD, remove ORIG_HEAD.lock and do pull again.
+#   Simultaneous git operations cannot be the reason for this cockup bcoz all git ops are done serially in JuFF.
+#   2) Sometimes an empty URL card is being pushed following the proper card with the same timestamp. And  yet,
+#   messages are getting delivered properly! What might be the reason?
 #
 #############################################################################
 
@@ -307,7 +318,7 @@ else
     else
         key
         echo "${RED}The account ${SELF} is not present. If this is unexpected, " \
-        "${BLUE}Email ${UNDERLINE}${MAILINGLIST} to query.${NORMAL}"
+        "${YELLOW}Email ${GREEN}${MAILINGLIST} ${YELLOW}for query.${NORMAL}"
         exit
     fi
 fi
