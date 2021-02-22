@@ -634,12 +634,17 @@ display() {
             echo -n "Input: Press any alphanumeric key..."
         else
             tput cnorm
+            if [[ "${PAGE}" == '1' ]]; then
             cd ${TRUSTLOCAL}    #This is just so that bash autocompletes the typed user names on Tab press
-            read -ep 'Input: ' INPUT
+            read -ep 'Input: ' INPUT    #Absence of -r so that backslash is escaped in \@gmail.com etc.
+            cd ${OLDPWD}
+            else
+            read -erp 'Input: ' INPUT   #-r so that backslash is not escaped for Windows paths; C:\users etc.
             local TMP
             [ "${INPUT:0:2}" == '~/' ] && TMP="${HOME}/${INPUT#*/}" && [ -f "${TMP}" ] && INPUT="${TMP}"
+            TMP=$(wslpath "${INPUT}" 2>/dev/null) && [ -f "${TMP}" ] && INPUT="${TMP}"  #For WSL, transform Win path to Unix path
             unset TMP
-            cd ${OLDPWD}
+            fi
             tput civis
         fi
 }
@@ -747,7 +752,7 @@ while [ -n "${PAGE}" ]; do
         fi
         [ -n "${CORRESPONDENT}" ] && backend ;;
     2)
-        frontend "${INBOX}/${CORRESPONDENT}.txt" 'Enter message or path of the file to be sent [you may also drag & drop the file below]'
+        frontend "${INBOX}/${CORRESPONDENT}.txt" 'Enter message or absolute path of the file to be sent [you may also drag & drop the file below]'
         case ${?} in 
         0)  MESSAGE="${INPUT}" ;;
         1 | 3 ) PAGE='1' ; PREV_CORR="${CORRESPONDENT}"
