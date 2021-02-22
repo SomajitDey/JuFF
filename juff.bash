@@ -578,7 +578,7 @@ if [ -f "${2}" ]; then
     echo "${GREEN}Fully encrypted. Uploading file now...${NORMAL}"
     upload "${CACHEFILE}"
     [ -z "${URL}" ] && echo ${RED}"ERROR: File upload failed. Check internet connectivity."${NORMAL} && return 2
-    card "${URL} -o ${BUFFERGARB}/${2##*/}" ".dl"
+    local FILENAME="${2##*/}" && card "${URL} -o ${BUFFERGARB}/${FILENAME// /\\ }" ".dl"
 else
     TEXT=${CYAN}${2}${NORMAL} && echo "${TEXT}" > "${CACHEUL}"
     if [ -n "${DONTSIGN}" ]; then
@@ -649,7 +649,7 @@ display() {
             { [ "${INPUT:0:2}" == '~/' ] && TMP="${HOME}/${INPUT#*/}";} || \
             { [ "${INPUT:0:1}" != '/' ] && TMP="${PWD}/${INPUT}";}
             [ -f "${TMP}" ] && INPUT="${TMP}"
-            TMP=$(wslpath "${INPUT}" 2>/dev/null) && [ -f "${TMP}" ] && INPUT="${TMP}"  #For WSL, transform Win path to Unix path
+            TMP=$(wslpath "${INPUT//\"/}" 2>/dev/null) && [ -f "${TMP}" ] && INPUT="${TMP}"  #For WSL, transform Win path to Unix path
             unset TMP
             ((SEED++))
             fi
