@@ -510,8 +510,10 @@ local PAYLOAD="${1}"
 until ((COUNT == ITERATION)); do
 case $(((SEED+COUNT)%NSERVER)) in
 0)
-    URL=$(curl -sf --no-epsv --upload-file "${PAYLOAD}" "https://transfer.sh/${PAYLOAD##*/}")
-    [ -n "${URL}" ] && timestamp "Uploaded to transfer.sh on count=$COUNT" >> ${SERVERLOG} && break
+#    URL=$(curl -sf --no-epsv --upload-file "${PAYLOAD}" "https://transfer.sh/${PAYLOAD##*/}")
+#    [ -n "${URL}" ] && timestamp "Uploaded to transfer.sh on count=$COUNT" >> ${SERVERLOG} && break
+    URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://0x0.st)
+    [ -n "${URL}" ] && timestamp "Uploaded to 0x0.st on count=$COUNT" >> ${SERVERLOG} && break
     ;;
 1)
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://file.io | grep -o "https://file.io/[A-Za-z0-9]*")
