@@ -598,7 +598,7 @@ else
     card "${URL}" ".txt"
 fi
 local CHAT="${INBOX}/${TO}.txt"
-echo -e ${2}$'\n' >> "${CHAT}"
+echo ${2}$'\n' >> "${CHAT}"
 touch "${UIUPDATE}"
 }
 
