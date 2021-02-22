@@ -162,7 +162,7 @@ echo `tput smso`"${1}"$'\n'`tput rmso``tput ed`
 }
 
 timestamp() {
-  date +${GREEN}%c" ${1}${NORMAL}"
+  date +${GREEN}%c" ${1}${NORMAL}" ${2}
 }
 
 trustpull() {
@@ -419,6 +419,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
     rm -f "${GARBTXT}" "${SENSETXT}" "${BUFFERGARB}/*" "${BUFFERSENSE}/*"  #Precautionary cleanup
     local EXT=$(echo ${FILE} | grep -o [.][txt,dl]*$)
     local FROM=`echo ${FILE} | grep -o ^[A-Za-z0-9._]*#*[a-z0-9._]*@[a-z0-9._]*`
+    local SENDTIME=${FILE%.*} && SENDTIME=${SENDTIME##*#}
     local CHAT=${INBOX}'/'${FROM}'.txt'
     $gpg --no-default-keyring --keyring "${KEYRING}" \
     --batch --yes -q --no-greeting --passphrase ${GPGPASSWD} --pinentry-mode loopback \
@@ -437,7 +438,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             --always-trust \
             -o "${SENSETXT}" -d "${GARBTXT}" > /dev/null 2>&1 || { echo 'Text decryption failed' && continue ;}
             (cat "${SENSETXT}" && echo) | tee -a ${LATEST} >> ${CHAT} && rm "${SENSETXT}"
-            whiteline "$(timestamp "from ${FROM}")" >> ${LATEST}
+            whiteline "$(timestamp "from ${FROM}" --date=@"${SENDTIME}")" >> ${LATEST}
             touch "${UIUPDATE}"
 
         else
@@ -459,6 +460,7 @@ for FILE in $(ls "${DLQUEUE}") ; do
             -o "${BUFFEREDFILE}" -d "${DOWNLOADED}" > /dev/null 2>&1 || { echo 'File decryption failed' && continue ;}
             mv --backup=numbered "${BUFFEREDFILE}" "${DIR}"
             echo "${CYAN}${FROM} sent ${BUFFEREDFILE##*/}${NORMAL}"$'\n' | tee -a ${LATEST} >> ${CHAT}
+            whiteline "$(timestamp "from ${FROM}" --date=@"${SENDTIME}")" >> ${LATEST}
             touch "${UIUPDATE}"
         else
             timestamp "${RED}Download failed. Will retry again."
