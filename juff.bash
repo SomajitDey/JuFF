@@ -648,7 +648,7 @@ display() {
             local TMP
             { [ "${INPUT:0:2}" == '~/' ] && TMP="${HOME}/${INPUT#*/}";} || \
             { [ "${INPUT:0:1}" != '/' ] && TMP="${PWD}/${INPUT}";}
-            [ -f "${TMP}" ] && INPUT="${TMP}"
+            TMP="${TMP//\\/}" && [ -f "${TMP}" ] && INPUT="${TMP}"
             TMP=$(wslpath "${INPUT//\"/}" 2>/dev/null) && [ -f "${TMP}" ] && INPUT="${TMP}"  #For WSL, transform Win path to Unix path
             unset TMP
             ((SEED++))
