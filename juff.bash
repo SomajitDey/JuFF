@@ -38,10 +38,10 @@
 #############################################################################
 #
 #   Free ephemeral file hosting servers used by JuFF:
-#   https://transfer.sh
+#   https://transfer.sh (Unstable: uploads without error but 'file not found' on download)
 #   https://oshi.at
 #   https://file.io
-#   https://0x0.st (Not used here but might be in future)
+#   https://0x0.st
 #
 #   Public key encryption and digital signature done with GNU Privacy Guard.
 #
