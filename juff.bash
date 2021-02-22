@@ -153,6 +153,8 @@ declare -rg REGISTRAR='registration#juff@github.com'
 declare -rg gpg="gpg"   #Ideally this should be the path to gpg or gpg2 + options
 declare -rg UIUPDATE="$(mktemp /tmp/uiupdate.XXXXXXXX)" #Flag file for communication between parallel processes (bg & fg)
 declare -rg ORIG_WD="${PWD}"
+#SEED needs to be random for fair load distribution. Decides what server to upload to first before trying others on failure.
+declare -g SEED=${RANDOM}
 }
 
 whiteline() {
@@ -502,8 +504,6 @@ post() {
 local URL=''
 upload(){
 local NSERVER=3 #No. of ephemeral file hosting servers
-#SEED needs to be random for fair load distribution. Decides what server to upload to first before trying others on failure.
-local SEED=${RANDOM}
 local COUNT=0
 local ITERATION=$((NSERVER*5))
 local PAYLOAD="${1}"
@@ -647,6 +647,7 @@ display() {
             [ -f "${TMP}" ] && INPUT="${TMP}"
             TMP=$(wslpath "${INPUT}" 2>/dev/null) && [ -f "${TMP}" ] && INPUT="${TMP}"  #For WSL, transform Win path to Unix path
             unset TMP
+            ((SEED++))
             fi
             cd ${OLDPWD}
             tput civis
