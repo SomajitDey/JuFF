@@ -249,11 +249,11 @@ if [ ! -d "${TRUSTLOCAL}/.git" ] || [ ! -d "${REPO}/.git" ] || [ ! -d "${SOURCER
 else
     trustpull
     local TOREGISTER=''
-    cd ${REPO}
 fi
 
 check_for_updates
 
+cd ${REPO}
 declare -rg SELF_NAME=`git config --local user.name`
 declare -rg SELF_EMAIL=`git config --local user.email`
 [ -z "${SELF_EMAIL}" ] && echo "Your inbox is corrupt. Please remove ${YELLOW}${INBOX}${NORMAL} with sudo and launch me afresh." && exit
@@ -537,15 +537,13 @@ quit() {
 post() {
 local URL=''
 upload(){
-local NSERVER=3 #No. of ephemeral file hosting servers
+local NSERVER=4 #No. of ephemeral file hosting servers
 local COUNT=0
-local ITERATION=$((NSERVER*5))
+local ITERATION=$((NSERVER*2))
 local PAYLOAD="${1}"
 until ((COUNT == ITERATION)); do
 case $(((SEED+COUNT)%NSERVER)) in
 0)
-#    URL=$(curl -sf --no-epsv --upload-file "${PAYLOAD}" "https://transfer.sh/${PAYLOAD##*/}")
-#    [ -n "${URL}" ] && timestamp "Uploaded to transfer.sh on count=$COUNT" >> ${SERVERLOG} && break
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://0x0.st)
     [ -n "${URL}" ] && timestamp "Uploaded to 0x0.st on count=$COUNT" >> ${SERVERLOG} && break
     ;;
@@ -556,6 +554,10 @@ case $(((SEED+COUNT)%NSERVER)) in
 2)
     URL=$(curl -sfF "file=@${PAYLOAD}" --no-epsv https://oshi.at | awk NR==2 | grep -o "https://oshi.at/[.A-Z0-9_a-z/]*")
     [ -n "${URL}" ] && timestamp "Uploaded to oshi.at on count=$COUNT" >> ${SERVERLOG} && break
+    ;;
+3)
+    URL=$(curl -sf --no-epsv --upload-file "${PAYLOAD}" "https://transfer.sh/${PAYLOAD##*/}")
+    [ -n "${URL}" ] && timestamp "Uploaded to transfer.sh on count=$COUNT" >> ${SERVERLOG} && break
     ;;
 esac
     ((COUNT++))
