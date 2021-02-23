@@ -181,6 +181,30 @@ fi
 cd ${OLDPWD}
 }
 
+check_for_updates() {
+cd ${SOURCEREPO}
+git pull --quiet || echo "${RED}Checking for updates failed.${NORMAL}"$'\n'
+git restore --quiet "${SOURCECODE}"
+cd ${OLDPWD}
+if [ "${BASH_SOURCE:0:2}" == '~/' ]; then
+    local CURRENTSOURCE="${HOME}/${BASH_SOURCE#*/}"
+elif [ "${BASH_SOURCE:0:1}" != '/' ]; then
+    local CURRENTSOURCE="${ORIG_WD}/${BASH_SOURCE}"
+else
+    local CURRENTSOURCE="${BASH_SOURCE}"
+fi
+if ! git diff --quiet "${CURRENTSOURCE}" "${SOURCECODE}" > /dev/null ; then
+    echo "${BOLD}You are using an older version of JuFF.${NORMAL}"
+    read -sn1 -p "${YELLOW} Press ENTER to Update Now ${NORMAL}| ${GREEN}Any other key to be reminded Later${NORMAL}"$'\n'$'\n'
+    if [ -z "${REPLY}" ]; then 
+        rm "${CURRENTSOURCE}" && ln "${SOURCECODE}" "${CURRENTSOURCE}" && echo "Update successful. Please relaunch me again" && exit
+        echo "${RED}Update failed. Something's wrong.${NORMAL}"$'\n'
+    fi
+else
+    echo "You are using the latest version of JuFF."$'\n'
+fi
+}
+
 config() {
 echo "Configuring ..."$'\n'
 [ -n "$(which git)" ] || { echo "Install git and relaunch me" && exit;}
@@ -227,6 +251,8 @@ else
     local TOREGISTER=''
     cd ${REPO}
 fi
+
+check_for_updates
 
 declare -rg SELF_NAME=`git config --local user.name`
 declare -rg SELF_EMAIL=`git config --local user.email`
@@ -748,7 +774,7 @@ trap quit QUIT TERM INT HUP
 
 altscr() {
 tput rmcup ; tput cnorm
-read -sn1 -p 'Press any key to return to juff. Ctrl-c to exit.' && read -st0.001
+read -sn1 -p 'Press any key to return to juff. Ctrl-c to exit.'$'\n'
 echo ; tput cuu1 ; tput ed ; tput smcup ; tput civis
 }
 local INPUT ; local PREV_CORR
@@ -781,30 +807,6 @@ done
 
 }
 
-check_for_updates() {
-cd ${SOURCEREPO}
-git pull --quiet || echo "${RED}Checking for updates failed.${NORMAL}"$'\n'
-git restore --quiet "${SOURCECODE}"
-cd ${OLDPWD}
-if [ "${BASH_SOURCE:0:2}" == '~/' ]; then
-    local CURRENTSOURCE="${HOME}/${BASH_SOURCE#*/}"
-elif [ "${BASH_SOURCE:0:1}" != '/' ]; then
-    local CURRENTSOURCE="${ORIG_WD}/${BASH_SOURCE}"
-else
-    local CURRENTSOURCE="${BASH_SOURCE}"
-fi
-if ! git diff --quiet "${CURRENTSOURCE}" "${SOURCECODE}" > /dev/null ; then
-    echo "${BOLD}You are using an older version of JuFF. Do you wanna use the updated version now?${NORMAL}"
-    read -sn1 -p "Press Enter for Yes | Any other key for No"$'\n'$'\n'
-    if [ -z "${REPLY}" ]; then 
-        rm "${CURRENTSOURCE}" && ln "${SOURCECODE}" "${CURRENTSOURCE}" && echo "Update successful. Please relaunch me again" && exit
-        echo "${RED}Update failed. Something's wrong.${NORMAL}"$'\n'
-    fi
-else
-    echo "You are using the latest version of JuFF. Congrats mate."$'\n'
-fi
-}
-
 #Main
 
 if [ ! -d "${INBOX}" ]; then 
@@ -833,7 +835,6 @@ fi
 echo $'\n'"Inbox is at ${INBOX}"$'\n'
 readonly_globals
 config
-check_for_updates
 CORRESPONDENT=${1}
 MESSAGE=${2}
 if [ -n "${MESSAGE}" ]; then
