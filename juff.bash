@@ -155,6 +155,9 @@ declare -rg UIUPDATE="$(mktemp /tmp/uiupdate.XXXXXXXX)" #Flag file for communica
 declare -rg ORIG_WD="${PWD}"
 #SEED needs to be random for fair load distribution. Decides what server to upload to first before trying others on failure.
 declare -g SEED=${RANDOM}
+declare -rg SOURCEREMOTE='https://github.com/SomajitDey/JuFF.git'
+declare -rg SOURCEREPO=${INBOX}'/.source'
+declare -rg SOURCECODE=${SOURCEREPO}'/juff.bash'
 }
 
 whiteline() {
@@ -195,25 +198,33 @@ echo >> ${NOTIFICATION}
 echo >> ${DELIVERY}
 echo >> ${LASTACT_LOG}
 touch "${LATEST}"
+#TODO: chmod for everything inside $INBOX, even those that are hidden (starting with .): for FILE in $(ls -a INBOX)
 chmod +t "${INBOX}"; chmod og-rw "${INBOX}"; chmod og-rw "${INBOX}"/*; chmod og-rw "${LATEST}"; chmod og-rw "${DOWNLOADS}"
 
-if [ ! -d "${TRUSTLOCAL}/.git" ]; then
+if [ ! -d "${TRUSTLOCAL}/.git" ] || [ ! -d "${REPO}/.git" ] || [ ! -d "${SOURCEREPO}/.git" ]; then
     local TOREGISTER='TRUE'
-    git clone --quiet "${TRUSTREMOTE}" "${TRUSTLOCAL}" || { echo "Perhaps an issue with your network"; exit;}
-    git clone --quiet "${REMOTE}" "${REPO}" || { echo "Perhaps an issue with your network"; exit;}
-    cd ${REPO}
-    git switch -q "${BRANCH}"
-    git branch -q -u "origin/${BRANCH}"
-    git tag lastsync > /dev/null 2>&1
-    read -ep $'\n''Enter your name without any spaces [you may use _ and .]: ' RESPONSE
-    set -- ${RESPONSE}
-    git config --local user.name ${1}
-    read -ep $'\n''Enter your emailid (this will be verified): ' RESPONSE
-    set -- ${RESPONSE}
-    git config --local user.email ${1}
+    if [ ! -d "${SOURCEREPO}/.git" ]; then
+        git clone --quiet "${SOURCEREMOTE}" "${SOURCEREPO}" || { echo "Perhaps an issue with your network"; exit;}
+    fi
+    if [ ! -d "${TRUSTLOCAL}/.git" ]; then
+        git clone --quiet "${TRUSTREMOTE}" "${TRUSTLOCAL}" || { echo "Perhaps an issue with your network"; exit;}
+    fi
+    if [ ! -d "${REPO}/.git" ]; then
+        git clone --quiet "${REMOTE}" "${REPO}" || { echo "Perhaps an issue with your network"; exit;}
+        cd ${REPO}
+        git switch -q "${BRANCH}"
+        git branch -q -u "origin/${BRANCH}"
+        git tag lastsync > /dev/null 2>&1
+        read -ep $'\n''Enter your name without any spaces [you may use _ and .]: ' RESPONSE
+        set -- ${RESPONSE}
+        git config --local user.name ${1}
+        read -ep $'\n''Enter your emailid (this will be verified): ' RESPONSE
+        set -- ${RESPONSE}
+        git config --local user.email ${1}
+    fi
 else
     trustpull
-    local TOREGISTER
+    local TOREGISTER=''
     cd ${REPO}
 fi
 
@@ -309,19 +320,14 @@ fi
 if [ -e "${VERIFIED_SELF}" ]; then
     if [ -n "${TOREGISTER}" ]; then
         echo "${GREEN}This email id is already present and verified.${NORMAL}"
-        echo "I have reconfigured the ${INBOX}. ${MAGENTA}What now?${NORMAL}"
-        key
+        echo "I have reconfigured the inbox at ${INBOX}.${NORMAL}"
     fi
-    
     mkdir -p "${GITBOX}"
-    [ ! -e "${ABOUT}" ] && \
-    echo "This is the JuFF postbox of $SELF_NAME.$'\n'For verified pubkey, refer to $TRUSTREMOTE" > ${ABOUT}
+    echo "This is the JuFF postbox of ${SELF_NAME}."$'\n'"For verified pubkey, refer to ${TRUSTREMOTE}" > ${ABOUT}
     key
 else
-    if [ -n "${TOREGISTER}" ]; then
-        key
-    else
-        key
+    key
+    if [ -z "${TOREGISTER}" ]; then
         echo "${RED}The account ${SELF} is not present. If this is unexpected, " \
         "${YELLOW}Email ${GREEN}${MAILINGLIST} ${YELLOW}for query.${NORMAL}"
         exit
@@ -775,6 +781,30 @@ done
 
 }
 
+check_for_updates() {
+cd ${SOURCEREPO}
+git pull --quiet || echo "${RED}Checking for updates failed.${NORMAL}"$'\n'
+git restore --quiet "${SOURCECODE}"
+cd ${OLDPWD}
+if [ "${BASH_SOURCE:0:2}" == '~/' ]; then
+    local CURRENTSOURCE="${HOME}/${BASH_SOURCE#*/}"
+elif [ "${BASH_SOURCE:0:1}" != '/' ]; then
+    local CURRENTSOURCE="${ORIG_WD}/${BASH_SOURCE}"
+else
+    local CURRENTSOURCE="${BASH_SOURCE}"
+fi
+if ! git diff --quiet "${CURRENTSOURCE}" "${SOURCECODE}" > /dev/null ; then
+    echo "${BOLD}You are using an older version of JuFF. Do you wanna use the updated version now?${NORMAL}"
+    read -sn1 -p "Press Enter for Yes | Any other key for No"$'\n'$'\n'
+    if [ -z "${REPLY}" ]; then 
+        rm "${CURRENTSOURCE}" && ln "${SOURCECODE}" "${CURRENTSOURCE}" && echo "Update successful. Please relaunch me again" && exit
+        echo "${RED}Update failed. Something's wrong.${NORMAL}"$'\n'
+    fi
+else
+    echo "You are using the latest version of JuFF. Congrats mate."$'\n'
+fi
+}
+
 #Main
 
 if [ ! -d "${INBOX}" ]; then 
@@ -803,6 +833,7 @@ fi
 echo $'\n'"Inbox is at ${INBOX}"$'\n'
 readonly_globals
 config
+check_for_updates
 CORRESPONDENT=${1}
 MESSAGE=${2}
 if [ -n "${MESSAGE}" ]; then
