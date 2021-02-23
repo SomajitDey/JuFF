@@ -776,8 +776,9 @@ trap quit QUIT TERM INT HUP
 
 altscr() {
 tput rmcup ; tput cnorm
-read -sn1 -p 'Press any key to return to juff. Ctrl-c to exit.'$'\n'
-echo ; tput cuu1 ; tput ed ; tput smcup ; tput civis
+read -sn1 -p 'Press any key to return to juff. Ctrl-c to exit.'$'\n' && read -st0.001   #So that arrow keys dont take to input mode
+tput cuu1 ; tput ed     #So that the above prompt is not repeated (one below the other) on subsequent invocations of altscr  
+tput smcup ; tput civis
 }
 local INPUT ; local PREV_CORR
 local PAGE='1'
