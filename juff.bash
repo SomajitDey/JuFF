@@ -42,6 +42,7 @@
 #   https://oshi.at
 #   https://file.io
 #   https://0x0.st
+#   Sourcecodes for all the above are available at GitHub.
 #
 #   Public key encryption and digital signature done with GNU Privacy Guard.
 #
@@ -77,13 +78,12 @@
 #   TODO:
 #   1) Add feature: message to all...message does not need to be encrypted, 
 #   but needs to be signed. Host the message within directory "all" at REMOTE.
-#   Everybody checks out "all/*" after every sync.
-#   2) Add feature: create groups...group messages need to be encrypted
-#   with a group public key. The other route is to encrypt with every group mem-
-#   ber's pubkey by the sender...would take a huge time for large groups.
-#   Encrypted group messages may be hosted at REMOTE for eternity as in large groups, the group
-#   private key may be compromised anyway.
-#   3) Add feature: Send single message to multiple persons encrypting with individual pubkeys.
+#   Everybody checks out "all/*" after every sync. Since these messages are basically public 
+#   announcements it's good to have them in REPO for the sake of record for perpetuity.
+#   2) Add feature: create groups...group messages need to be encrypted with pubkeys of all the 
+#   group members. Use gpg --recipient <UserA> <UserB> <UserC> etc. --encrypt <filename>
+#   Encrypted group messages may be hosted at servers that do not delete the file after one download.
+#   3) Add feature: Message multiple correspondents as in mail merge...however encrypt only once as above.
 #   4) Backend: Kanban style cards for hosting the texts after download. This helps list them
 #   according to creation time (alphabetically) (ls -t -1) even if they are downloaded randomly.
 #   Still have the option to condense all chats with a correspondent in one text file for portablity
@@ -91,6 +91,13 @@
 #   5) Add feature: Right key at page 2 shows timestamped view...without it one sees focussed view of chat.
 #   6) Have .tmp directory inside INBOX and create temp files there with mktemp. Empty .tmp on restart.
 #   7) Have a lockfile in INBOX stating another instance of JuFF is on for the same INBOX or account.
+#   8) Have a server run on cloud (Amazon AWS or Google GCP) to automate email verification as follows:
+#   Operates as REGISTRAR. Checks for new pubkeys arriving in INBOX. Then filters the email and emails OTP.
+#   User enters OTP in her/his JuFF which is sent to REGISTRAR again. Server receives this OTP in its INBOX
+#   and hosts the pubkey at key-server.
+#   9) If existing ephemeral file-sharing servers fail, build your own ftp servers (e.g. filezilla) using DDNS, 
+#   with no permission for deletion by the anonymous user, only uploads and downloads. Expire files after 14 days.
+#   Upload might be restricted to text files only below certain size => So gpg encrypt binary to armored output.
 #
 #############################################################################
 #
@@ -98,8 +105,6 @@
 #   1) Sometimes git pull at REPO would fail even though you have internet. Resolve manually as follows:
 #   cd to REPO and do git pull...if the problem is around ORIG_HEAD, remove ORIG_HEAD.lock and do pull again.
 #   Simultaneous git operations cannot be the reason for this cockup bcoz all git ops are done serially in JuFF.
-#   2) Sometimes an empty URL card is being pushed following the proper card with the same timestamp. And  yet,
-#   messages are getting delivered properly! What might be the reason?
 #
 #############################################################################
 
@@ -535,12 +540,15 @@ quit() {
     exit ${1}
 }
 
-#Below we use gpg -a or --armor for encrypted output...This is very important..gpg expects ASCII input while decryting
+#Below we use gpg -a or --armor for encrypted output...This is very important..gpg expects ASCII input while decrypting
 #So, if we don't upload explicitly ascii output from encryption phase, gpg decryption gives neither output nor error!
+#However, ASCII is mainly needed for mail servers that expect text. While using ephermal file servers, no need to armor.
+#Binary output is smaller that armored one. Coupled with compression, it's costs less data and time during transmission.
+#If encrytion is not armored, specify that to gpg during decryption as well.
 post() {
 local URL=''
 upload(){
-local NSERVER=4 #No. of ephemeral file hosting servers
+local NSERVER=4 #No. of ephemeral file hosting servers. Add new servers as they become available. Remove any that's down.
 local COUNT=0
 local ITERATION=$((NSERVER*2))
 local PAYLOAD="${1}"
