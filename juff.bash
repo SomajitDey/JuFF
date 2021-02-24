@@ -542,9 +542,6 @@ quit() {
 
 #Below we use gpg -a or --armor for encrypted output...This is very important..gpg expects ASCII input while decrypting
 #So, if we don't upload explicitly ascii output from encryption phase, gpg decryption gives neither output nor error!
-#However, ASCII is mainly needed for mail servers that expect text. While using ephermal file servers, no need to armor.
-#Binary output is smaller that armored one. Coupled with compression, it's costs less data and time during transmission.
-#If encrytion is not armored, specify that to gpg during decryption as well.
 post() {
 local URL=''
 upload(){
