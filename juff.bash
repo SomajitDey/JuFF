@@ -183,8 +183,8 @@ cd ${OLDPWD}
 
 check_for_updates() {
 cd ${SOURCEREPO}
-git pull --quiet || echo "${RED}Checking for updates failed.${NORMAL}"$'\n'
 git restore --quiet "${SOURCECODE}"
+git pull --quiet || echo "${RED}Checking for updates failed.${NORMAL}"$'\n'
 cd ${OLDPWD}
 if [ "${BASH_SOURCE:0:2}" == '~/' ]; then
     local CURRENTSOURCE="${HOME}/${BASH_SOURCE#*/}"
