@@ -183,7 +183,6 @@ cd ${OLDPWD}
 
 check_for_updates() {
 cd ${SOURCEREPO}
-git restore --quiet "${SOURCECODE}"
 git pull --quiet || echo "${RED}Checking for updates failed.${NORMAL}"$'\n'
 cd ${OLDPWD}
 if [ "${BASH_SOURCE:0:2}" == '~/' ]; then
@@ -200,7 +199,8 @@ if ! git diff -G"." --quiet "${CURRENTSOURCE}" "${SOURCECODE}" > /dev/null ; the
     echo "${BOLD}You are using an older version of JuFF.${NORMAL}"
     read -sn1 -p "${YELLOW} Press ENTER to Update Now ${NORMAL}| ${GREEN}Any other key to be reminded Later${NORMAL}"$'\n'$'\n'
     if [ -z "${REPLY}" ]; then 
-        sudo ln -f "${SOURCECODE}" "${CURRENTSOURCE}" && echo "Update successful. Please relaunch me again" && exit
+#--no-preserve=all may not be needed below; However, if --preseve flag is invoked, --no-preseve=mode,ownership is necessary
+        sudo cp -f --no-preserve=all "${SOURCECODE}" "${CURRENTSOURCE}" && echo "Update successful. Relaunch me now" && exit
         echo "${RED}Update failed. Something's wrong.${NORMAL}"$'\n'
     fi
 else
