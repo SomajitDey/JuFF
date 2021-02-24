@@ -195,11 +195,12 @@ else
 fi
 #Below we use git diff to avoid dependence on the GNU diff utility. We are already using git so git-diff would be there
 #However, in contrast with GNU diff, git-diff exits with non-zero exitcode even for a change in file mode only.
-if ! git diff --quiet "${CURRENTSOURCE}" "${SOURCECODE}" > /dev/null ; then
+#To avoid that, use filter -G"." which specifies git-diff fail for difference in content only; "." in REGEX means any line
+if ! git diff -G"." --quiet "${CURRENTSOURCE}" "${SOURCECODE}" > /dev/null ; then
     echo "${BOLD}You are using an older version of JuFF.${NORMAL}"
     read -sn1 -p "${YELLOW} Press ENTER to Update Now ${NORMAL}| ${GREEN}Any other key to be reminded Later${NORMAL}"$'\n'$'\n'
     if [ -z "${REPLY}" ]; then 
-        rm "${CURRENTSOURCE}" && ln "${SOURCECODE}" "${CURRENTSOURCE}" && echo "Update successful. Please relaunch me again" && exit
+        sudo ln -f "${SOURCECODE}" "${CURRENTSOURCE}" && echo "Update successful. Please relaunch me again" && exit
         echo "${RED}Update failed. Something's wrong.${NORMAL}"$'\n'
     fi
 else
