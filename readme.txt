@@ -42,7 +42,8 @@ prompt, or if you are using a Linux-box, just drag-n-drop the file at the prompt
 
 JuFF is not meant for syncing across multiple devices. However, that by no means reduces 
 portability. All data assciated with your JuFF account stays within your JuFF inbox. Therefore, 
-you can just carry it with you, on a thumbdrive e.g.. On a new machine, just direct JuFF to that
+you can just carry it with you, on a thumbdrive e.g., or sync it with your cloud storage account
+such as Dropbox, Google Drive, Onedrive or Pcloud. On a new machine, just direct JuFF to that
 inbox, and it takes on from there. At your option, you can also keep your JuFF inbox encrypted.
 However, JuFF won't do that encryption as of now, you gotta do it on your own.
 
