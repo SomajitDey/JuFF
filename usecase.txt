@@ -1,0 +1,29 @@
+1) Secure chatting
+2) Secure file-sharing with simple drag & drop
+3) Email anyone not in JuFF ;-)
+4) Communication with remote server
+    a) The server shall have a JuFF account
+    b) Server's code will run JuFF daemon and will be designed to check
+    Downloads/client_accountname/ for files sent by any particular client.
+    c) No need for the server to have a public IP. It can be hidden behind
+    multiple NATs.
+    d) Example (raspberry pi) email server for JuFF.
+    e) May be used to make simulation code running in cluster/cloud send simulation
+    data to user's machine, not necessarily connected using ssh/LAN, at home e.g.
+    Because of a limit in file-upload size, it may be sending sim data in parts.
+5) JuFF is the Poor but paranoid man's friend. Free yet secure.
+6) Other services might be there...but you do not have as much control over their code.
+    Simplicity and transferancy and flexibility are key to JuFF. In addition you would
+    have to learn different api's to use other services. The api's exist only as long as
+    the service exists. If one service is down, you have to learn new api for a new service.
+    You can have your own JuFF chatroom however. GitHub is down, no prob, create your room
+    at Gitlab. Or Sourceforge.net. Nothing changes apart from the REMOTE URL ! And given
+    the popularity of git repos, GitHub, GitLab, SF etc. are probably here to stay.
+7) The weakest point for JuFF is its dependence on ephemeral file-sharing servers. What if they
+    shut down due to cost issues. And what if the user base increases a lot. There would be so
+    many pushes in a single repo and hence collisions. Maybe one needs to distribute useraccounts
+    into multiple repos. WHile sending messages, the recipients repo is located first, cd'd to then
+    pushed only if there is anything to push. Why not have your own file server. It wud be ftp. Wud only
+    accept gpg encrypted armored files, and wud delete things after a single download or after 14 days.
+    No need to have huge storage space then. Might run on cooled raspberry pis. The need for public ip
+    and ddns subscription is the only devil. Or host it on AWS or GCP and pay. The latter is better of course.

@@ -49,6 +49,18 @@
 #   after posting, even if the push has not occurred yet. The entire process is thus handled by
 #   the daemon.
 #
+#   User's JuFF after sending request for OTP to server, exits. On relaunch it is in ! VERIFIED_SELF
+#   && ! TOREGISTER state, whereby it asks for OTP.
+#
+#   User can also send invitation/text through email to a person with no JuFF account. Usually the
+#   person enters the email id in PAGE 1. If ls TRUSTLOCAL/ | grep emailid is empty, user is given
+#   a choice to send that email id an invitation text. On entering the text and pressing Enter,
+#   user's JuFF sends a text file to server containing user's access token and text. Server downloads 
+#   the file and emails the contents to the intended recipient with -F"inviter's JuFF account".
+#
+#   JuFF shall also have command-line flag for this email-sending feature. With flag, one may email
+#   even those with an account in JuFF.
+#
 #############################################################################
 
 INBOX=${HOME}'/Inbox_JuFF'  #default: You may customize this
