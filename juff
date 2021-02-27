@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+###############################################################################
+#
+# Usage: juff [options]
+#
+# Options:
+# -i | --inbox <directory>
+# -d | --daemon
+# -s | --sync
+# [-e | --email] <recipient> [<text> | <Windows or Unix filepath>]
+# -v | --version
+# -h | --help
+#
+# Copyright (C) 2021 Somajit Dey <dey.somajit@gmail.com>
+# License: GPL-3.0-or-later
+#
+###############################################################################
+#
+# Customizable constants
+readonly Default_inbox="${HOME}/Inbox_JuFF"
+readonly GPG_program="gpg"
+readonly Debug_mode="yes"
+readonly Version="beta"
+
+###############################################################################
+
+abs_path(){
+# Transforms any path, including windows paths, to absolute path. Expands ~ too
+# Exitcode: 0 (output to stdout) if path exists, 1 (outout to stderr) otherwise
+  local path="${1}"
+# Windows to Unix path [if operand is Unix path then wslpath outputs to stderr]
+  local buffer=$(wslpath -u "${path}" 2>/dev/null); path="${buffer:-"${path}"}"
+  path="${path//\\/}"  # Remove backslash, if any
+  path="${path//\~/"${HOME}"}"  # Tilde expansion: ~
+  path="${path//\~-/"${OLDPWD}"}"  # Tilde expansion: ~-
+  [[ "${path}" != /* ]] && path="${PWD}/${path}"
+  [[ -e "${path}" ]] && echo "${path}" && return 0
+  echo "${path}" >&2 && return 1 
+}
+
+readonly This_code="$(abs_path "${BASH_SOURCE}")"
+readonly This_prog="${0}"
+readonly This_pid="${$}"
+readonly Red="$(tput setaf 1)"
+readonly Green="$(tput setaf 2)"
+readonly Yellow="$(tput setaf 3)"
+readonly Blue="$(tput setaf 4)"
+readonly Magenta="$(tput setaf 5)"
+readonly Cyan="$(tput setaf 6)"
+readonly Normal="$(tput sgr0)"
+readonly Bold="$(tput bold)"
+readonly Underline="$(tput smul)"
+readonly Bell="$(tput bel)"
+readonly Prefix_gpg="${GPG_program} --batch --no-tty --quiet --no-greeting"
+
+error_exit
+graceful_exit
+signal_exit
+show_usage
+show_help
+
+parse_cmdline(){
+  while [[ -n "${1}" ]]; do
+    case "${1}" in
+    
+  done
+}
