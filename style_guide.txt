@@ -1,0 +1,32 @@
+- KISS throughout the code
+- Indent 2 spaces...no tabs
+- Max 80 characters per line to keep things readable in terminal windows.
+- Long commands with multiple arguments as functions or common prefix saved as
+  variable. E.g. gpg_prefix="gpg --batch --yes --no-tty --pinentry-mode loopback"
+- "${variable}"
+- All variable names in lower_case
+- Constants in Mixed_case
+- ENV variables in UPPER_CASE
+- No camelCase
+- Functions defined as func_name(){; body; } >> "${logfile}"
+- Use local and readonly profusely
+- All todo comments start with TODO:
+- [[ ]] instead of []
+- Use =~ instead of == for pattern matching
+- Keep use of tmp files to a minimum. When unavoidable, use \
+  mktemp "${inbox}/.tmp/XXXXX"
+- Use bash built-in instead of commands
+-- ${variable##/*} instead of basename
+-- ${variable%*/} instead of dirname
+- ${HOME} instead of ~ and ${OLDPWD} instead of ~-
+- Long options instead of short options, e.g. --quiet rather than -q
+- Use here documents instead of lots of echo or printf
+-- cat << _EOF_ # when here document body requires shell expansion of variables
+-- cat << "_EOF_" # otherwise
+- Command substitution using $() instead of ``
+- Process substitution [ e.g. < <() ] instead of tmpfiles when possible
+- States of boolean flags: yes/no or on/off preferred to true/false
+- Minimize use of shared variables...pass variables as command-line args
+- No set -e or set -o pipefail or set -u
+- The more a snippet/code block gives you trouble, the more you must comment
+- (command-list) instead of {command-list ; cd "${OLDPWD}"}, if possible
