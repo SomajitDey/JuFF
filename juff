@@ -72,10 +72,10 @@ With no options, JuFF is interactive
 Options:
   -i | --inbox <directory>
      Specify your JuFF inbox if it is anything other than the default
-  -d | --daemon
-     Keep syncing in background 
   -s | --sync
      Sync once in background
+  -d | --daemon
+     Keep syncing in background. Overrides option --sync, if present 
   [-e | --email] <recipient> [<text> | <Windows or Unix filepath>]
      Specify the recipient account. If ambiguous, JuFF becomes interactive.
      Follow recipient spec with message or path or name of the file to be sent
@@ -96,15 +96,14 @@ _EOF_
 }
 
 parse_cmdline(){
-  quiet_mode="off"
-  email_mode="off"
-  sync_mode="off"
-  daemon_mode="off"
-
   while [[ -n "${1}" ]]; do
     case "${1}" in
+      -i | --inbox)
+        shift
+        Inbox="${1}"
+        ;;
       -q | --quiet)
-        quiet_mode="on"
+        Quiet_mode="on"
         ;;
       -v | --version)
         printf "%s\n" "${Version}" ; exit
@@ -113,13 +112,13 @@ parse_cmdline(){
         showhelp ; exit
         ;;
       -d | --daemon)
-        daemon_mode="on" ; break
+        Daemon_mode="on" ; break
         ;;
       -s | --sync)
-        sync_mode="on" ; break
+        Sync_mode="on" ; break
         ;;
       -e | --email)
-        email_mode="on"
+        Email_mode="on"
         ;;
       -* | --*)
         printf "%s\n" "Option not recognized. See help: ${This_prog} -h" >&2
@@ -131,6 +130,12 @@ parse_cmdline(){
     esac
     shift
   done
+
+  readonly Inbox="${Inbox:="${Default_inbox}"}"
+  readonly Quiet_mode="${Quiet_mode:="off"}"
+  readonly Email_mode="${Email_mode:="off"}"
+  readonly Sync_mode="${Sync_mode:="off"}"
+  readonly Daemon_mode="${Daemon_mode:="off"}"
 }
 
-parse_cmdline "${@}" && echo ${correspondent} && echo ${msg_or_file}
+parse_cmdline "${@}" && echo ${correspondent} && echo ${msg_or_file} && echo ${Inbox}
