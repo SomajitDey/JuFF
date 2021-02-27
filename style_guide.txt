@@ -33,3 +33,4 @@
 - The more a snippet/code block gives you trouble, the more you must comment
 - (command-list) instead of {command-list ; cd "${OLDPWD}"}, if possible
 - tput instead of ansi escape codes
+- printf instead of echo -e but echo instead of printf

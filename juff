@@ -61,7 +61,7 @@ error_exit(){
 } >&2
 
 showhelp(){
-  cat <<_EOF_
+  cat <<"_EOF_"
 
 JuFF is a secure chatting and file-sharing application run from a single script
 
