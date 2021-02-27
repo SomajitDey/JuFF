@@ -10,6 +10,7 @@
 # [-e | --email] <recipient> [<text> | <Windows or Unix filepath>]
 # -v | --version
 # -h | --help
+# -q | --quiet
 #
 # Copyright (C) 2021 Somajit Dey <dey.somajit@gmail.com>
 # License: GPL-3.0-or-later
@@ -19,7 +20,7 @@
 # Customizable constants
 readonly Default_inbox="${HOME}/Inbox_JuFF"
 readonly GPG_program="gpg"
-readonly Debug_mode="yes"
+readonly Debug_mode="on"
 readonly Version="beta"
 
 ###############################################################################
@@ -53,15 +54,83 @@ readonly Underline="$(tput smul)"
 readonly Bell="$(tput bel)"
 readonly Prefix_gpg="${GPG_program} --batch --no-tty --quiet --no-greeting"
 
-error_exit
-graceful_exit
-signal_exit
-show_usage
-show_help
+error_exit(){
+  local error_msg="${1:-"Unknown error"}"
+  printf "%s\n" "${error_msg}"
+  exit 1
+} >&2
+
+showhelp(){
+  cat <<_EOF_
+
+JuFF is a secure chatting and file-sharing application run from a single script
+
+Usage: juff [options]
+
+With no options, JuFF is interactive
+
+Options:
+  -i | --inbox <directory>
+     Specify your JuFF inbox if it is anything other than the default
+  -d | --daemon
+     Keep syncing in background 
+  -s | --sync
+     Sync once in background
+  [-e | --email] <recipient> [<text> | <Windows or Unix filepath>]
+     Specify the recipient account. If ambiguous, JuFF becomes interactive.
+     Follow recipient spec with message or path or name of the file to be sent
+     if -e or --email is present, JuFF sends email to the recipient's email
+  -v | --version
+  -h | --help
+  -q | --quiet
+     Be as quiet as possible
+
+Ex: juff --quiet name#id@domain.com "Welcome to JuFF"
+Ex: juff 007_mi6@sis.gov.uk "~/private_key.asc"
+Ex: juff daemon # You may include this in your .bashrc file
+Ex: juff sync
+Ex: juff --email to#person@email.com "Please join JuFF"
+
+_EOF_
+  
+}
 
 parse_cmdline(){
+  quiet_mode="off"
+  email_mode="off"
+  sync_mode="off"
+  daemon_mode="off"
+
   while [[ -n "${1}" ]]; do
     case "${1}" in
-    
+      -q | --quiet)
+        quiet_mode="on"
+        ;;
+      -v | --version)
+        printf "%s\n" "${Version}" ; exit
+        ;;
+      -h | --help)
+        showhelp ; exit
+        ;;
+      -d | --daemon)
+        daemon_mode="on" ; break
+        ;;
+      -s | --sync)
+        sync_mode="on" ; break
+        ;;
+      -e | --email)
+        email_mode="on"
+        ;;
+      -* | --*)
+        printf "%s\n" "Option not recognized. See help: ${This_prog} -h" >&2
+        exit 1
+        ;;
+      *)
+        correspondent="${1}" ; msg_or_file="${2}" ; break
+        ;;
+    esac
+    shift
   done
 }
+
+parse_cmdline "${@}" && echo ${correspondent} && echo ${msg_or_file}
