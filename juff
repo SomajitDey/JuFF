@@ -7,7 +7,7 @@
 # -i | --inbox <directory>
 # -d | --daemon
 # -s | --sync
-# [-e | --email] <recipient> [<text> | <Windows or Unix filepath>]
+# <recipient> [<text> | <Windows or Unix filepath>]
 # -v | --version
 # -h | --help
 # -q | --quiet
@@ -73,23 +73,24 @@ Options:
   -i | --inbox <directory>
      Specify your JuFF inbox if it is anything other than the default
   -s | --sync
-     Sync once in background
+     Sync once. Ignores other options except -q or --quiet and -i or --inbox
   -d | --daemon
-     Keep syncing in background. Overrides option --sync, if present 
-  [-e | --email] <recipient> [<text> | <Windows or Unix filepath>]
-     Specify the recipient account. If ambiguous, JuFF becomes interactive.
-     Follow recipient spec with message or path or name of the file to be sent
-     if -e or --email is present, JuFF sends email to the recipient's email
+     Sync in background. Implies --quiet. Ignores other options except --inbox 
+  <recipient> [<text> | <Windows or Unix filepath>]
+     Specify the recipient account. If ambiguous, JuFF becomes interactive
+     If recipient cannot be found, JuFF sends email to the recipient instead
+     Follow recipient name with message or path or name of the file to be sent
+     If nothing follows recipient name JuFF becomes interactive
   -v | --version
   -h | --help
   -q | --quiet
      Be as quiet as possible
 
-Ex: juff --quiet name#id@domain.com "Welcome to JuFF"
-Ex: juff 007_mi6@sis.gov.uk "~/private_key.asc"
+Ex: juff email@domain "Welcome to JuFF"
+Ex: juff --quiet alias#email@domain "$(cat my_words.txt)" # Send text from file
+Ex: juff email@domain "~/share.me" # File-sharing
 Ex: juff daemon # You may include this in your .bashrc file
 Ex: juff sync
-Ex: juff --email to#person@email.com "Please join JuFF"
 
 _EOF_
   
@@ -117,9 +118,6 @@ parse_cmdline(){
       -s | --sync)
         Sync_mode="on" ; break
         ;;
-      -e | --email)
-        Email_mode="on"
-        ;;
       -* | --*)
         printf "%s\n" "Option not recognized. See help: ${This_prog} -h" >&2
         exit 1
@@ -133,7 +131,6 @@ parse_cmdline(){
 
   readonly Inbox="${Inbox:="${Default_inbox}"}"
   readonly Quiet_mode="${Quiet_mode:="off"}"
-  readonly Email_mode="${Email_mode:="off"}"
   readonly Sync_mode="${Sync_mode:="off"}"
   readonly Daemon_mode="${Daemon_mode:="off"}"
 }
