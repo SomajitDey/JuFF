@@ -1,0 +1,13 @@
+- accountname template: name<email@domain>
+- kanban card name: name<email@domain>${EPOCHSECONDS}.[txt|dl|gr]
+- .gr extension in cardname implies a group message/file
+  group accountname=group_name<juff@github.com>
+- every kanban card contains an accountname in its filename and also
+  text to display : such as <accountname> sent you file
+  Unlike prototype, dont use xargs
+- recp_list="user1<email@domain> user2<email@domain>,user3<email@domain>; user4<email@domain> "
+  while encrypting and posting just do a for correspondent in ${recp_list}
+  This creates a local group in for the sender...a .groups directory with tmp subdirectory/recipeint_name
+  When any recipient replies back it the reply is appended to both one-one chat and this merge chat
+-   
+

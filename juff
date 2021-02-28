@@ -86,9 +86,9 @@ Options:
   -q | --quiet
      Be as quiet as possible. Limits interaction with user
 
-Ex: juff alias<email@domain> "Welcome to JuFF"
+Ex: juff name<email@domain> "Welcome to JuFF"
 Ex: juff --quiet email@domain "$(cat my_words.txt)" # Send text from file
-Ex: juff alias "~/share.me" # File-sharing
+Ex: juff name "~/share.me" # File-sharing
 Ex: juff daemon # You may include this in your .bashrc file
 Ex: juff sync
 
