@@ -7,7 +7,7 @@
 # -i | --inbox <directory>
 # -d | --daemon
 # -s | --sync
-# <recipient> [<text> | <Windows or Unix filepath>]
+# <recipient> | -b | --broadcast [<text> | <Windows or Unix filepath>]
 # -v | --version
 # -h | --help
 # -q | --quiet
@@ -76,15 +76,15 @@ Options:
      Sync once. Ignores other options except -q or --quiet and -i or --inbox
   -d | --daemon
      Sync in background. Implies --quiet. Ignores other options except --inbox 
-  <recipient> [<text> | <Windows or Unix filepath>]
+  <recipient> | -b | --broadcast [<text> | <Windows or Unix filepath>]
      Specify the recipient account. If ambiguous, JuFF becomes interactive
-     If recipient cannot be found, JuFF sends email to the recipient instead
+     -b or --broadcast implies everyone in JuFF is a recipient
      Follow recipient name with message or path or name of the file to be sent
-     If nothing follows recipient name JuFF becomes interactive
+     If no text or filename follows recipient name, JuFF becomes interactive
   -v | --version
   -h | --help
   -q | --quiet
-     Be as quiet as possible
+     Be as quiet as possible. Limits interaction with user
 
 Ex: juff email@domain "Welcome to JuFF"
 Ex: juff --quiet alias#email@domain "$(cat my_words.txt)" # Send text from file
@@ -118,6 +118,9 @@ parse_cmdline(){
       -s | --sync)
         Sync_mode="on" ; break
         ;;
+      -b | --broadcast)
+        Broadcast_mode="on" ; msg_or_file="${2}"; break
+        ;;
       -* | --*)
         printf "%s\n" "Option not recognized. See help: ${This_prog} -h" >&2
         exit 1
@@ -133,6 +136,7 @@ parse_cmdline(){
   readonly Quiet_mode="${Quiet_mode:="off"}"
   readonly Sync_mode="${Sync_mode:="off"}"
   readonly Daemon_mode="${Daemon_mode:="off"}"
+  readonly Broadcast_mode="${Broadcast_mode:="off"}"
 }
 
 parse_cmdline "${@}" && echo ${correspondent} && echo ${msg_or_file} && echo ${Inbox}
