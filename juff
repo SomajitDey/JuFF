@@ -91,6 +91,7 @@ Ex: juff --quiet email@domain "$(cat my_words.txt)" # Send text from file
 Ex: juff name "~/share.me" # File-sharing
 Ex: juff daemon # You may include this in your .bashrc file
 Ex: juff sync
+Ex. juff -b "This is an announcement"
 
 _EOF_
   
@@ -139,4 +140,4 @@ parse_cmdline(){
   readonly Broadcast_mode="${Broadcast_mode:="off"}"
 }
 
-parse_cmdline "${@}" && echo ${correspondent} && echo ${msg_or_file} && echo ${Inbox}
+parse_cmdline "${@}"
