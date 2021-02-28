@@ -244,8 +244,7 @@ if [ ! -d "${TRUSTLOCAL}/.git" ] || [ ! -d "${REPO}/.git" ] || [ ! -d "${SOURCER
     if [ ! -d "${REPO}/.git" ]; then
         git clone --quiet "${REMOTE}" "${REPO}" || { echo "Perhaps an issue with your network"; exit;}
         cd ${REPO}
-        git switch -q "${BRANCH}"
-        git branch -q -u "origin/${BRANCH}"
+        git checkout --quiet "${BRANCH}"
         git tag lastsync > /dev/null 2>&1
         read -ep $'\n''Enter your name without any spaces [you may use _ and .]: ' RESPONSE
         set -- ${RESPONSE}
