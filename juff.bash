@@ -439,6 +439,10 @@ queue() {
             local COMMITTIME="${LINE##*#}"
             keyretrieve "${FROM}" "${COMMITTIME}"
         elif [ "${LINE##*/}" != 'about.txt' ]; then
+# TODO: Signature verification should be done here instead of in get() below.
+# Otherwise, an attacker may populate a git inbox with fake cards with future timestamps
+# So, when the proper sender commits a card with the same filename as posted previously by the attacker,
+# the following code, discards it in favour of the attacker's commit due to its chronological precedence
             ln -t ${DLQUEUE} ${LINE} > /dev/null 2>&1 && continue
             git restore -q --source="${COMMIT}" "${LINE}" && ln -f -t ${DLQUEUE} ${LINE} && \
             rm "${LINE}"
