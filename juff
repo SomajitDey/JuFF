@@ -40,6 +40,7 @@ export Locks="${Cache}/locks"
 export Encrypt_payload_lock="${Locks}/encrypt_payload.lock"
 export Encrypt_card_lock="${Locks}/encrypt_card.lock"
 export UL_lock="${Locks}/upload.lock"
+export Chat_lock="${Locks}/chat.lock"
 
 export Ref_stack="${Cache}/ref.repo.stack"
 export URL_repo="${Ref_stack}/url"
@@ -68,8 +69,8 @@ export Get_status="${Logs}/get.log"
 export Encrypt_status="${Logs}/encrypt.log"
 export Decrypt_status="${Logs}/decrypt.log"
 
-# Username<email> cannot contain ?,* etc. Because git branchname cannot have these
-# Screen usernames for non-permissible characters with [[ =~^[a-z0-9A-Z_.#@]*$ ]]
+# Username<email> can't contain ?,* etc. since git branchname can't have them
+# Screen usernames for non-permissible characters: [[ =~^[a-z0-9A-Z_.#@]*$ ]]
 export Self=
 
 export Self_keyid=
@@ -83,26 +84,41 @@ alias gpg-key='gpg --keyring "${Self_keyring}"'
 alias gpg-pass='gpg-key --passphrase-file "${GPG_passphrase_file}" \
                                             --pinentry-mode loopback'
 
-alias git-quiet="git --quiet"
-
 retrieve_pubkey(){
 }
 
 push(){
+# Takes an accountname as argument. Pushes to respective branch in URL_remote
+  local owner="${1}"
+  local dir="${Post_stack}/${owner}"  # Shallow cloned when Chat_lock is set
+  local lock="${Locks}/${owner}.lock"
+# Critical section begins. See examples in: man flock
+(
+  flock --wait 0.1 200 || exit
+  cd "${dir}"
+  git add --all 
+  while ! git diff --quiet HEAD ; do
+    git commit --quiet -m "${Self}"
+    until git push --quiet "${URL_remote}" "${owner}"; do
+      git fetch --quiet --depth=1 "${URL_remote}" "${owner}"
+      git rebase --quiet FETCH_HEAD
+    done
+    git add --all
+  done
+)200>"${lock}"
 }>>"${Post_status}"
 
 encrypt_card(){
-  if [[ -f "${Encrypt_card_lock}" ]]; then
-    return
-  else
-    touch "${Encrypt_card_lock}"
-  fi
+  local lock="${Encrypt_card_lock}"
+# Critical section begins. See examples in: man flock
+(
+  flock --wait 0.1 200 || exit
   export GNUPGHOME="${Post_GPGHOME}"
   cd "${Post_queue}"
   local filename
   local cache="$(mktemp "${TMPDIR/XXXXX}")"
   while [[ -n "$(ls -A "${Post_queue}")" ]]; do
-    for filename in *; do
+  for filename in *; do
       local to="${filename%%>*}>"
       local buffer="${filename#*>}" && buffer="${buffer#*.}"
       local ext=".${buffer%>*}"
@@ -139,24 +155,23 @@ encrypt_card(){
       push "${to}" &
     done
   done
-  rm "${Encrypt_card_lock}"
+)200>"${lock}"
 }>>"${Encrypt_status}"
 
 upload(){
 }>>"${UL_status}"
 
 encrypt_payload(){
-  if [[ -f "${Encrypt_payload_lock}" ]]; then
-    return
-  else
-    touch "${Encrypt_payload_lock}"
-  fi
+  local lock="${Encrypt_payload_lock}"
+# Critical section begins. See examples in: man flock
+(
+  flock --wait 0.1 200 || exit
   export GNUPGHOME="${UL_GPGHOME}"
   cd "${Encrypt_queue}"
   local filename
   local cache="$(mktemp "${TMPDIR/XXXXX}")"
   while [[ -n "$(ls -A "${Encrypt_queue}")" ]]; do
-    for filename in *; do
+  for filename in *; do
       local to="${filename%%>*}>"
       retrieve_pubkey "${to}"
       gpg-pass --recipient "${to}" --sign --user "${Self_keyid}" \
@@ -167,7 +182,7 @@ encrypt_payload(){
       upload &
     done
   done
-  rm "${Encrypt_payload_lock}"
+)200>"${lock}"
 }>>"${Encrypt_status}"
 
 post(){

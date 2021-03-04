@@ -1,0 +1,7 @@
+rebase:
+rebase fails if an untracked file is to be overwritten
+rebase succeeds if there are untracked files that won't be overwritten
+rebase fails if there are uncommited but staged files, i.e. after git-add but before git-commit
+
+git-diff:
+git diff --quiet HEAD applies to tracked files only. So do git add -A before
