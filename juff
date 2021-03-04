@@ -47,6 +47,8 @@ export URL_repo="${Ref_stack}/url"
 export Key_repo="${Ref_stack}/key"
 export Code_repo="${Ref_stack}/code"
 
+export Key_stack="${Cache}/key.stack"
+
 export Get_stack="${Cache}/get.stack"
 export Get_GPGHOME="${Get_stack}/gpghome.get"
 export DL_queue="${Get_stack}/download.queue"
@@ -88,9 +90,9 @@ retrieve_pubkey(){
 # Takes an accountname as argument. Pulls the respective branch from Key_remote
   local owner="${1}"
   local before="${2}"
-  local latest_key="${Post_stack}/${owner}/latest.key"
+  local latest_key="${Key_stack}/${owner}/latest.key"
   local pubkey="pubkey.asc"
-  local dir="${Post_stack}/${owner}/key.repo"  # Shallow cloned when Chat_lock is set
+  local dir="${Key_stack}/${owner}/key.repo"  # Complete clone
   cd "${dir}"
   git pull --ff-only --quiet "${Key_remote}" "${owner}"
   mv "${pubkey}" "${latest_key}"
@@ -149,7 +151,7 @@ encrypt_card(){
           if [[ "${ext}"==.file ]]; then 
             printf "%s\n" "${cargoname// /\\}" >> "${filename}"
           fi
-          retrieve_pubkey "${to}"
+          gpg --import "${Key_stack}/${to}/latest.key"
           gpg-pass --recipient "${to}" --sign --user "${Self_keyid}" \
               --output "${cache}" "${filename}"
           rm "${GNUPGHOME}/*${GPG_keybox_ext}"    
