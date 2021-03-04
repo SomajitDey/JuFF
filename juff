@@ -85,12 +85,17 @@ alias gpg-pass='gpg-key --passphrase-file "${GPG_passphrase_file}" \
                                             --pinentry-mode loopback'
 
 retrieve_pubkey(){
-}
+# Takes an accountname as argument. Pulls the respective branch in Key_remote
+  local owner="${1}"
+  local dir="${Post_stack}/${owner}/key"  # Shallow cloned when Chat_lock is set
+  cd "${dir}"
+  git pull --ff-only --quiet "${Key_remote}" "${owner}"
+}>>"${Encrypt_status}"
 
 push(){
 # Takes an accountname as argument. Pushes to respective branch in URL_remote
   local owner="${1}"
-  local dir="${Post_stack}/${owner}"  # Shallow cloned when Chat_lock is set
+  local dir="${Post_stack}/${owner}/url"  # Shallow cloned when Chat_lock is set
   local lock="${Locks}/${owner}.lock"
 # Critical section begins. See examples in: man flock
 (
@@ -99,7 +104,8 @@ push(){
   git add --all 
   while ! git diff --quiet HEAD ; do
     git commit --quiet -m "${Self}"
-    until git push --quiet "${URL_remote}" "${owner}"; do
+    until git push --quiet "${URL_remote}"; do
+      # The following may be seen as a shallow version of: git pull --rebase
       git fetch --quiet --depth=1 "${URL_remote}" "${owner}"
       git rebase --quiet FETCH_HEAD
     done
