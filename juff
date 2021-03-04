@@ -1,29 +1,21 @@
-#!/usr/bin/env bash
-###############################################################################
-#
-# Usage: juff [options]
-#
-# Options:
-# -i | --inbox <directory>
-# -d | --daemon
-# -s | --sync
-# <recipient> | -b | --broadcast [<text> | <Windows or Unix filepath>]
-# -v | --version
-# -h | --help
-# -q | --quiet
-#
-# Copyright (C) 2021 Somajit Dey <dey.somajit@gmail.com>
-# License: GPL-3.0-or-later
-#
-###############################################################################
-#
 # Customizable constants
-readonly Default_inbox="${HOME}/Inbox_JuFF"
-readonly GPG_program="gpg"
-readonly Debug_mode="on"
-readonly Version="beta"
+# For users:
+export Default_inbox="${HOME}/Inbox_JuFF"
+export GPG_program="gpg"
+export GPG_keybox_ext=".kbx"
+# For deployer:
+export Debug_mode="on"
+export Version="beta"
+export URL_remote=
+export Key_remote=
+export Code_remote=
 
 ###############################################################################
+error_exit(){
+  local error_msg="${1:-"Unknown error"}"
+  printf "%s\n" "${error_msg}"
+  exit 1
+} >&2
 
 abs_path(){
 # Transforms any path, including windows paths, to absolute path. Expands ~ too
@@ -39,105 +31,173 @@ abs_path(){
   echo "${path}" >&2 && return 1 
 }
 
-readonly This_code="$(abs_path "${BASH_SOURCE}")"
-readonly This_prog="${0}"
-readonly This_pid="${$}"
-readonly Red="$(tput setaf 1)"
-readonly Green="$(tput setaf 2)"
-readonly Yellow="$(tput setaf 3)"
-readonly Blue="$(tput setaf 4)"
-readonly Magenta="$(tput setaf 5)"
-readonly Cyan="$(tput setaf 6)"
-readonly Normal="$(tput sgr0)"
-readonly Bold="$(tput bold)"
-readonly Underline="$(tput smul)"
-readonly Bell="$(tput bel)"
-readonly Prefix_gpg="${GPG_program} --batch --no-tty --quiet --no-greeting"
+export Downloads="${Inbox}/Downloads"
+export Chats="${Inbox}/Chats"
+export Cache="${HOME}/.JuFF.cache"
+export TMPDIR="${Cache}/tmp"
 
-error_exit(){
-  local error_msg="${1:-"Unknown error"}"
-  printf "%s\n" "${error_msg}"
-  exit 1
-} >&2
+export Locks="${Cache}/locks"
+export Encrypt_payload_lock="${Locks}/encrypt_payload.lock"
+export Encrypt_card_lock="${Locks}/encrypt_card.lock"
+export UL_lock="${Locks}/upload.lock"
 
-showhelp(){
-  cat <<"_EOF_"
+export Ref_stack="${Cache}/ref.repo.stack"
+export URL_repo="${Ref_stack}/url"
+export Key_repo="${Ref_stack}/key"
+export Code_repo="${Ref_stack}/code"
 
-JuFF is a secure chatting and file-sharing application run from a single script
+export Get_stack="${Cache}/get.stack"
+export Get_GPGHOME="${Get_stack}/gpghome.get"
+export DL_queue="${Get_stack}/download.queue"
+export Decrypt_queue="${Get_stack}/decrypt.queue"
+export DL_GPGHOME="${Get_stack}/gpghome.dl"
+export DL_silo="${Get_stack}/downloaded.silo"
 
-Usage: juff [options]
+export Post_stack="${Cache}/post.stack"
+export UL_GPGHOME="${Post_stack}/gpghome.ul"
+export Encrypt_queue="${Post_stack}/encrypt.queue"
+export UL_queue="${Post_stack}/upload.queue"
+export Post_queue="{Post_stack}/post.queue"
+export Post_GPGHOME="${Post_stack}/gpghome.post"
 
-With no options, JuFF is interactive
+export Logs="${Cache}/logs"
+export UL_status="${Logs}/upload.log"
+export DL_status="${Logs}/download.log"
+export Post_status="${Logs}/post.log"
+export Get_status="${Logs}/get.log"
+export Encrypt_status="${Logs}/encrypt.log"
+export Decrypt_status="${Logs}/decrypt.log"
 
-Options:
-  -i | --inbox <directory>
-     Specify your JuFF inbox if it is anything other than the default
-  -s | --sync
-     Sync once. Ignores other options except -q or --quiet and -i or --inbox
-  -d | --daemon
-     Sync in background. Implies --quiet. Ignores other options except --inbox 
-  <recipient> | -b | --broadcast [<text> | <Windows or Unix filepath>]
-     Specify the recipient account. If ambiguous, JuFF becomes interactive
-     -b or --broadcast implies everyone in JuFF is a recipient
-     Follow recipient name with message or path or name of the file to be sent
-     If no text or filename follows recipient name, JuFF becomes interactive
-  -v | --version
-  -h | --help
-  -q | --quiet
-     Be as quiet as possible. Limits interaction with user
+# Username<email> cannot contain ?,* etc. Because git branchname cannot have these
+# Screen usernames for non-permissible characters with [[ =~^[a-z0-9A-Z_.#@]*$ ]]
+export Self=
 
-Ex: juff name<email@domain> "Welcome to JuFF"
-Ex: juff --quiet email@domain "$(cat my_words.txt)" # Send text from file
-Ex: juff name "~/share.me" # File-sharing
-Ex: juff daemon # You may include this in your .bashrc file
-Ex: juff sync
-Ex. juff -b "This is an announcement"
+export Self_keyid=
+export Self_keyring=
+export GPG_passphrase_file=
+alias gpg="${GPG_program} --batch --no-tty --quiet --no-greeting \
+                      --armor --always-trust --no-auto-check-trustdb"
+#For pubkey import and list-key. Add --no-default-keyring for secret key import
+alias gpg-key='gpg --keyring "${Self_keyring}"'
+#For everything requiring passphrase - sign, decrypt
+alias gpg-pass='gpg-key --passphrase-file "${GPG_passphrase_file}" \
+                                            --pinentry-mode loopback'
 
-_EOF_
-  
+alias git-quiet="git --quiet"
+
+retrieve_pubkey(){
 }
 
-parse_cmdline(){
-  while [[ -n "${1}" ]]; do
-    case "${1}" in
-      -i | --inbox)
-        shift
-        Inbox="${1}"
-        ;;
-      -q | --quiet)
-        Quiet_mode="on"
-        ;;
-      -v | --version)
-        printf "%s\n" "${Version}" ; exit
-        ;;
-      -h | --help)
-        showhelp ; exit
-        ;;
-      -d | --daemon)
-        Daemon_mode="on" ; break
-        ;;
-      -s | --sync)
-        Sync_mode="on" ; break
-        ;;
-      -b | --broadcast)
-        Broadcast_mode="on" ; msg_or_file="${2}"; break
-        ;;
-      -* | --*)
-        printf "%s\n" "Option not recognized. See help: ${This_prog} -h" >&2
-        exit 1
-        ;;
-      *)
-        correspondent="${1}" ; msg_or_file="${2}" ; break
-        ;;
-    esac
-    shift
+push(){
+}>>"${Post_status}"
+
+encrypt_card(){
+  if [[ -f "${Encrypt_card_lock}" ]]; then
+    return
+  else
+    touch "${Encrypt_card_lock}"
+  fi
+  export GNUPGHOME="${Post_GPGHOME}"
+  cd "${Post_queue}"
+  local filename
+  local cache="$(mktemp "${TMPDIR/XXXXX}")"
+  while [[ -n "$(ls -A "${Post_queue}")" ]]; do
+    for filename in *; do
+      local to="${filename%%>*}>"
+      local buffer="${filename#*>}" && buffer="${buffer#*.}"
+      local ext=".${buffer%>*}"
+      local cargoname="${buffer#*>}"
+      case "${ext}" in
+        .txt|.file)
+          # These files now contain the download url only
+          # Lets append the filename below the url: access with tail -1
+          # This is to be done before encryption
+          if [[ "${ext}"==.file ]]; then 
+            printf "%s\n" "${cargoname// /\\}" >> "${filename}"
+          fi
+          retrieve_pubkey "${to}"
+          gpg-pass --recipient "${to}" --sign --user "${Self_keyid}" \
+              --output "${cache}" "${filename}"
+          rm "${GNUPGHOME}/*${GPG_keybox_ext}"    
+          ;;
+        .key|.otp)
+          mv "${filename}" "${cache}"
+          ;;
+        *)
+          # These are files to be stored as is in key-repo user's branch
+          # Hence they must be verified for user authentication
+          # The first/last line of each file contains the filename
+          # Server accesses the first(last) line with read < or head(tail) -1
+          # gpg armored files remain uncorrupted if extra text is appended
+          gpg-pass --sign --user "${Self_keyid}" \
+              --output "${cache}" "${filename}"
+          printf "%s\n" "${cargoname// /\\}" >> "${cache}"
+          ;;        
+      esac
+      mv "${cache}" "${Post_stack}/${to}/${Self}${ext}"
+      rm "${filename}"
+      push "${to}" &
+    done
   done
+  rm "${Encrypt_card_lock}"
+}>>"${Encrypt_status}"
 
-  readonly Inbox="${Inbox:="${Default_inbox}"}"
-  readonly Quiet_mode="${Quiet_mode:="off"}"
-  readonly Sync_mode="${Sync_mode:="off"}"
-  readonly Daemon_mode="${Daemon_mode:="off"}"
-  readonly Broadcast_mode="${Broadcast_mode:="off"}"
+upload(){
+}>>"${UL_status}"
+
+encrypt_payload(){
+  if [[ -f "${Encrypt_payload_lock}" ]]; then
+    return
+  else
+    touch "${Encrypt_payload_lock}"
+  fi
+  export GNUPGHOME="${UL_GPGHOME}"
+  cd "${Encrypt_queue}"
+  local filename
+  local cache="$(mktemp "${TMPDIR/XXXXX}")"
+  while [[ -n "$(ls -A "${Encrypt_queue}")" ]]; do
+    for filename in *; do
+      local to="${filename%%>*}>"
+      retrieve_pubkey "${to}"
+      gpg-pass --recipient "${to}" --sign --user "${Self_keyid}" \
+          --output "${cache}" "${filename}"
+      rm "${GNUPGHOME}/*${GPG_keybox_ext}"    
+      mv "${cache}" "${UL_queue}/${filename}"
+      rm "${filename}"
+      upload &
+    done
+  done
+  rm "${Encrypt_payload_lock}"
+}>>"${Encrypt_status}"
+
+post(){
+# Parameters: recipient, payload, extension(.file|.txt|.otp|.key|.store)
+# Posts payload to the proper encrypt queue
+# Launches the daemon encrypt_payload or encrypt_card if not running already
+  local to="${1}"
+  local payload="${2}"
+  local ext="${3}"
+  local filename="${to}${EPOCHSECONDS}${ext}"
+  case "${ext}" in
+    .txt|.file)
+      if [[ "${ext}"==.file ]]; then 
+        ln "${payload}" "${Encrypt_queue}/${filename}>${payload##*/}"
+      else
+        mv "${payload}" "${Encrypt_queue}/${filename}"
+      fi
+      encrypt_payload &
+      return
+      ;;
+    .otp)
+      touch "${Post_queue}/${filename}"
+      ;;
+    .key)
+      mv "${payload}" "${Post_queue}/${filename}"
+      ;;
+    *)
+      mv "${payload}" "${Post_queue}/${filename}>${payload##*/}"
+      ;;
+  esac
+      encrypt_card &
 }
 
-parse_cmdline "${@}"
