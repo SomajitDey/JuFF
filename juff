@@ -85,17 +85,29 @@ alias gpg-pass='gpg-key --passphrase-file "${GPG_passphrase_file}" \
                                             --pinentry-mode loopback'
 
 retrieve_pubkey(){
-# Takes an accountname as argument. Pulls the respective branch in Key_remote
+# Takes an accountname as argument. Pulls the respective branch from Key_remote
   local owner="${1}"
-  local dir="${Post_stack}/${owner}/key"  # Shallow cloned when Chat_lock is set
+  local before="${2}"
+  local latest_key="${Post_stack}/${owner}/latest.key"
+  local pubkey="pubkey.asc"
+  local dir="${Post_stack}/${owner}/key.repo"  # Shallow cloned when Chat_lock is set
   cd "${dir}"
   git pull --ff-only --quiet "${Key_remote}" "${owner}"
+  mv "${pubkey}" "${latest_key}"
+  if [[ -n "${before}" ]]; then
+    local commit="$(git log --pretty=format:%H --before="${before}" -1)"
+    git restore --quiet --source="${commit}" "${pubkey}"
+    gpg --import "${PWD}/${pubkey}"
+  else
+    gpg --import "${latest_key}"
+  fi
+  git restore --quiet "${pubkey}"
 }>>"${Encrypt_status}"
 
 push(){
 # Takes an accountname as argument. Pushes to respective branch in URL_remote
   local owner="${1}"
-  local dir="${Post_stack}/${owner}/url"  # Shallow cloned when Chat_lock is set
+  local dir="${Post_stack}/${owner}/url.repo"  # Shallow cloned when Chat_lock is set
   local lock="${Locks}/${owner}.lock"
 # Critical section begins. See examples in: man flock
 (
@@ -149,7 +161,7 @@ encrypt_card(){
           # These are files to be stored as is in key-repo user's branch
           # Hence they must be verified for user authentication
           # The first/last line of each file contains the filename
-          # Server accesses the first(last) line with read < or head(tail) -1
+          # Server accesses the first(last) line with read < <( or |head(tail) -1 |awk NR==1
           # gpg armored files remain uncorrupted if extra text is appended
           gpg-pass --sign --user "${Self_keyid}" \
               --output "${cache}" "${filename}"
