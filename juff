@@ -89,21 +89,32 @@ alias gpg-pass='gpg-key --passphrase-file "${GPG_passphrase_file}" \
 retrieve_pubkey(){
 # Takes an accountname as argument. Pulls the respective branch from Key_remote
   local owner="${1}"
-  local before="${2}"
+  local before="${2}" #This argument is present only during verify_card
+  local lock="${Locks}/${owner}.key_retrieve"
   local latest_key="${Key_stack}/${owner}/latest.key"
   local pubkey="pubkey.asc"
   local dir="${Key_stack}/${owner}/key.repo"  # Complete clone
   cd "${dir}"
+
+#Critical section below: Key retrieve during encrypt_payload & verify_card compete
+(
+# If lock can be acquired, go pull. Otherwise wait as someone else is pulling. Then
+# skip the pull as everything is updated already.
+  flock -n 200 || flock -x 200 exit 
+  git restore --quiet "${pubkey}" # To cleanup any changes from previous instance
   git pull --ff-only --quiet "${Key_remote}" "${owner}"
   mv "${pubkey}" "${latest_key}"
+)200>"${lock}"
+
+# The following section need not be lock protected. The only change to repo is made
+# by verify_card only, which runs only one instance at a time.
   if [[ -n "${before}" ]]; then
     local commit="$(git log --pretty=format:%H --before="${before}" -1)"
     git restore --quiet --source="${commit}" "${pubkey}"
-    gpg --import "${PWD}/${pubkey}"
+    gpg --import "${PWD}/${pubkey}" # For almost-empty keyrings this is extremely fast
   else
-    gpg --import "${latest_key}"
+    gpg --import "${latest_key}"  # For almost-empty keyrings this is extremely fast
   fi
-  git restore --quiet "${pubkey}"
 }>>"${Encrypt_status}"
 
 push(){
@@ -115,7 +126,7 @@ push(){
 (
   flock --wait 0.1 200 || exit
   cd "${dir}"
-  git add --all 
+  git rm --quiet -rf . ; git add --all #During Get, make sure to apply rm ./* before git restore .
   while ! git diff --quiet HEAD ; do
     git commit --quiet -m "${Self}"
     until git push --quiet "${URL_remote}"; do
@@ -123,7 +134,7 @@ push(){
       git fetch --quiet --depth=1 "${URL_remote}" "${owner}"
       git rebase --quiet FETCH_HEAD
     done
-    git add --all
+    git rm --quiet -rf . ; git add --all #During Get, make sure to apply rm ./* before git restore .
   done
 )200>"${lock}"
 }>>"${Post_status}"
@@ -153,7 +164,7 @@ encrypt_card(){
           fi
           gpg --import "${Key_stack}/${to}/latest.key"
           gpg-pass --recipient "${to}" --sign --user "${Self_keyid}" \
-              --output "${cache}" "${filename}"
+              --output "${cache}" --encrypt "${filename}"
           rm "${GNUPGHOME}/*${GPG_keybox_ext}"    
           ;;
         .key|.otp)
@@ -194,8 +205,11 @@ encrypt_payload(){
   for filename in *; do
       local to="${filename%%>*}>"
       retrieve_pubkey "${to}"
-      gpg-pass --recipient "${to}" --sign --user "${Self_keyid}" \
-          --output "${cache}" "${filename}"
+      # Notice sender does not sign below..hence no need to retrieve pubkey during Get
+      # No sign is not a problem as the respective download URL will be signed
+      # Also hidden-recipient is for added anonymity at the 3rd party file-hosting server
+      gpg-pass --hidden-recipient "${to}" \
+          --output "${cache}" --encrypt "${filename}"
       rm "${GNUPGHOME}/*${GPG_keybox_ext}"    
       mv "${cache}" "${UL_queue}/${filename}"
       rm "${filename}"
