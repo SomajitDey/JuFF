@@ -6,6 +6,7 @@ export GPG_keybox_ext=".kbx"
 # For deployer:
 export Debug_mode="on"
 export Version="beta"
+export Broadcast= # Accountname for the broadcast channel
 export URL_remote=
 export Key_remote=
 export Code_remote=
@@ -212,7 +213,7 @@ encrypt_payload(){
       # Notice sender does not sign below..hence no need to retrieve pubkey during Get
       # No sign is not a problem as the respective download URL will be signed
       # Also hidden-recipient is for added anonymity at the 3rd party file-hosting server
-      gpg-pass --hidden-recipient "${to}" \
+      gpg --hidden-recipient "${to}" \
           --output "${cache}" --encrypt "${filename}"
       rm "${GNUPGHOME}/*${GPG_keybox_ext}"    
       mv "${cache}" "${UL_queue}/${filename}"
@@ -263,16 +264,25 @@ download(){
 
 verify_card(){
 # Takes an accountname as argument.
-# This is so that this method can serve both user's branch and broadcast branch
+# This method can serve multiple accounts of the same user (such as groups)
   local owner="${1}"
   dir="${Get_stack}/${owner}/url.repo"
   cd "${dir}"
+  export GNUPGHOME="${Get_GPGHOME}"
   local commit
+  local cache="$(mktemp "${TMPDIR/XXXXX}")"
+  local card
   while flock -n "${Main_lock}"; do
     rm ./* ; git restore --quiet . # Cleaning up any change from previous iteration
     git pull --ff-only --quiet --no-tags "${URL_remote}" "${owner}"
     for commit in "$(git rev-list last-synced.. 2>/dev/null | tac)"; do
-      
+      local from="$(git show -s --pretty="%an<%ae>" "${commit}")"
+      local commit_time="$(git show -s --pretty=%at "${commit}")"
+      retrieve_pubkey "${from}" "${commit_time}"
+      for card in * ; do
+        gpg-pass --output "${cache}" --decrypt "${card}" && \
+        { mv "${cache}" "${DL_queue}/${card}" ; download & }
+      done
     done
   done
 }
