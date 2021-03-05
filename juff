@@ -37,10 +37,14 @@ export Cache="${HOME}/.JuFF.cache"
 export TMPDIR="${Cache}/tmp"
 
 export Locks="${Cache}/locks"
+# TODO: Move these inside the respective function definitions
 export Encrypt_payload_lock="${Locks}/encrypt_payload.lock"
 export Encrypt_card_lock="${Locks}/encrypt_card.lock"
 export UL_lock="${Locks}/upload.lock"
 export Chat_lock="${Locks}/chat.lock"
+export Main_lock="${Locks}/main.lock" # Acquired by interactive main as opposed to daemon
+export DL_lock="${Locks}/download.lock"
+export Decrypt_payload_lock="${Locks}/decrypt_payload.lock"
 
 export Ref_stack="${Cache}/ref.repo.stack"
 export URL_repo="${Ref_stack}/url"
@@ -102,14 +106,14 @@ retrieve_pubkey(){
 # skip the pull as everything is updated already.
   flock -n 200 || flock -x 200 exit 
   git restore --quiet "${pubkey}" # To cleanup any changes from previous instance
-  git pull --ff-only --quiet "${Key_remote}" "${owner}"
+  git pull --ff-only --quiet --no-tags "${Key_remote}" "${owner}"
   mv "${pubkey}" "${latest_key}"
 )200>"${lock}"
 
 # The following section need not be lock protected. The only change to repo is made
 # by verify_card only, which runs only one instance at a time.
   if [[ -n "${before}" ]]; then
-    local commit="$(git log --pretty=format:%H --before="${before}" -1)"
+    local commit="$(git log --pretty=%H --before="${before}" -1)"
     git restore --quiet --source="${commit}" "${pubkey}"
     gpg --import "${PWD}/${pubkey}" # For almost-empty keyrings this is extremely fast
   else
@@ -131,8 +135,8 @@ push(){
     git commit --quiet -m "${Self}"
     until git push --quiet "${URL_remote}"; do
       # The following may be seen as a shallow version of: git pull --rebase
-      git fetch --quiet --depth=1 "${URL_remote}" "${owner}"
-      git rebase --quiet FETCH_HEAD
+      git fetch --quiet --no-tags --depth=1 "${URL_remote}" "${owner}"
+      git rebase --quiet --ignore-date FETCH_HEAD
     done
     git rm --quiet -rf . ; git add --all #During Get, make sure to apply rm ./* before git restore .
   done
@@ -249,4 +253,28 @@ post(){
   esac
       encrypt_card &
 }
+
+
+decrypt_payload(){
+}
+
+download(){
+}
+
+verify_card(){
+# Takes an accountname as argument.
+# This is so that this method can serve both user's branch and broadcast branch
+  local owner="${1}"
+  dir="${Get_stack}/${owner}/url.repo"
+  cd "${dir}"
+  local commit
+  while flock -n "${Main_lock}"; do
+    rm ./* ; git restore --quiet . # Cleaning up any change from previous iteration
+    git pull --ff-only --quiet --no-tags "${URL_remote}" "${owner}"
+    for commit in "$(git rev-list last-synced.. 2>/dev/null | tac)"; do
+      
+    done
+  done
+}
+
 
