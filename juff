@@ -278,8 +278,8 @@ verify_card(){
     rm ./* ; git restore --quiet . # Cleaning up any change from previous iteration
     git pull --ff-only --quiet --no-tags "${URL_remote}" "${owner}"
     for commit in "$(git rev-list --since="${since}" last-synced.. 2>/dev/null | tac)"; do
-      local from="$(git show -s --pretty="%cn<%ce>" "${commit}")"
-      local commit_time="$(git show -s --pretty=%ct "${commit}")"
+      local from="$(git show --no-patch --pretty="%cn<%ce>" "${commit}")"
+      local commit_time="$(git show --no-patch --pretty=%ct "${commit}")"
       ((commit_time < parent_commit_time)) && continue
       parent_commit_time="${commit_time}"
       retrieve_pubkey "${from}" "${commit_time}"
