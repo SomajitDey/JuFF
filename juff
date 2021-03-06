@@ -283,6 +283,7 @@ verify_card(){
       ((commit_time < parent_commit_time)) && continue
       parent_commit_time="${commit_time}"
       retrieve_pubkey "${from}" "${commit_time}"
+      rm ./* ; git restore --quiet --source="${commit}" .
       for card in * ; do
         gpg-pass --output "${cache}" --decrypt "${card}" && \
         { mv "${cache}" "${DL_queue}/${card}" ; download & }
