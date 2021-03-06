@@ -10,7 +10,7 @@ export Broadcast= # Accountname for the broadcast channel
 export URL_remote=
 export Key_remote=
 export Code_remote=
-
+export Expiry="$((86400*13))" # 13-days expiry time in seconds
 ###############################################################################
 error_exit(){
   local error_msg="${1:-"Unknown error"}"
@@ -272,12 +272,16 @@ verify_card(){
   local commit
   local cache="$(mktemp "${TMPDIR/XXXXX}")"
   local card
+  local since="$((EPOCHSECONDS-Expiry))"
+  local parent_commit_time="${since}"
   while flock -n "${Main_lock}"; do
     rm ./* ; git restore --quiet . # Cleaning up any change from previous iteration
     git pull --ff-only --quiet --no-tags "${URL_remote}" "${owner}"
-    for commit in "$(git rev-list last-synced.. 2>/dev/null | tac)"; do
-      local from="$(git show -s --pretty="%an<%ae>" "${commit}")"
-      local commit_time="$(git show -s --pretty=%at "${commit}")"
+    for commit in "$(git rev-list --since="${since}" last-synced.. 2>/dev/null | tac)"; do
+      local from="$(git show -s --pretty="%cn<%ce>" "${commit}")"
+      local commit_time="$(git show -s --pretty=%ct "${commit}")"
+      ((commit_time < parent_commit_time)) && continue
+      parent_commit_time="${commit_time}"
       retrieve_pubkey "${from}" "${commit_time}"
       for card in * ; do
         gpg-pass --output "${cache}" --decrypt "${card}" && \
