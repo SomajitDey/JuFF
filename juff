@@ -91,6 +91,15 @@ alias gpg-key='gpg --keyring "${Self_keyring}"'
 alias gpg-pass='gpg-key --passphrase-file "${GPG_passphrase_file}" \
                                             --pinentry-mode loopback'
 
+pull_unexpired_commits(){
+# Pulls only those commits that are recent than expiry time.
+  local origin="${1}"
+  local branch="${2}"
+  local since="$((EPOCHSECONDS-Expiry))"
+  git fetch --quiet --no-tags --shallow-since="${since}" "${origin}" "${branch}"
+  git rebase --quiet --ignore-date FETCH_HEAD  
+}
+
 retrieve_pubkey(){
 # Takes an accountname as argument. Pulls the respective branch from Key_remote
   local owner="${1}"
@@ -107,7 +116,7 @@ retrieve_pubkey(){
 # skip the pull as everything is updated already.
   flock -n 200 || flock -x 200 exit 
   git restore --quiet "${pubkey}" # To cleanup any changes from previous instance
-  git pull --ff-only --quiet --no-tags "${Key_remote}" "${owner}"
+  pull_unexpired_commits "${Key_remote}" "${owner}"
   mv "${pubkey}" "${latest_key}"
 )200>"${lock}"
 
@@ -276,7 +285,7 @@ verify_card(){
   local parent_commit_time="${since}"
   while flock -n "${Main_lock}"; do
     rm ./* ; git restore --quiet . # Cleaning up any change from previous iteration
-    git pull --ff-only --quiet --no-tags "${URL_remote}" "${owner}"
+    pull_unexpired_commits "${URL_remote}" "${owner}"
     for commit in "$(git rev-list --since="${since}" last-synced.. 2>/dev/null | tac)"; do
       local from="$(git show --no-patch --pretty="%cn<%ce>" "${commit}")"
       local commit_time="$(git show --no-patch --pretty=%ct "${commit}")"
