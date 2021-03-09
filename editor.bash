@@ -14,8 +14,12 @@ tput civis
 save_stty_state="$(stty -g)"  # Involvement of stty is optional.
 stty erase $'\x7f'  #This may be default but we take no chances. Hex 7f=^?
 until read -p "${prepend}" -rst 0.1 -n 256 ; do
+  REPLY="${REPLY//$'\e[H'/}"  # Ignores Home key
+  REPLY="${REPLY//$'\e[F'/}"  # Ignores End key
+  REPLY="${REPLY//$'\e[3~'/}"  # Ignores Delete key
+  REPLY="${REPLY//$'\e[2~'/}"  # Ignores Insert key
   prepend="${prepend}${REPLY}"
-  prepend="${prepend//$'\x7f'/$'\b' $'\b'}"
+  prepend="${prepend//$'\x7f'/$'\b \b'}" # Interprets Backspace
   tput home
 done
 stty "${save_stty_state}" # Involvement of stty is optional.
