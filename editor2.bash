@@ -1,14 +1,12 @@
 #The following code is a basic text editor for chatting
 #Delete last typed character using Backspace, otherwise just type
 #Returns on pressing Enter
-#Supports yanking/pasting previously copied text
-#Supports backslash escaped characters, such as \n
 
 #Using this avoids use of curses library, as another process
 #can be interleafed to show other outputs, such as notifications
 #when the user is still typing
 
-trap break INT
+trap 'tput rmcup && exit' INT
 tput smcup
 #tput civis
 save_stty_state="$(stty -g)"  # Involvement of stty is optional.
