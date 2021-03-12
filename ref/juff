@@ -161,7 +161,7 @@ encrypt_card(){
   export GNUPGHOME="${Post_GPGHOME}"
   cd "${Post_queue}"
   local filename
-  local cache="$(mktemp "${TMPDIR/XXXXX}")"
+  local cache="$(mktemp "${TMPDIR}/XXXXX")"
   while [[ -n "$(ls -A "${Post_queue}")" ]]; do
   for filename in *; do
       local to="${filename%%>*}>"
@@ -214,7 +214,7 @@ encrypt_payload(){
   export GNUPGHOME="${UL_GPGHOME}"
   cd "${Encrypt_queue}"
   local filename
-  local cache="$(mktemp "${TMPDIR/XXXXX}")"
+  local cache="$(mktemp "${TMPDIR}/XXXXX")"
   while [[ -n "$(ls -A "${Encrypt_queue}")" ]]; do
   for filename in *; do
       local to="${filename%%>*}>"
@@ -279,7 +279,7 @@ verify_card(){
   cd "${dir}"
   export GNUPGHOME="${Get_GPGHOME}"
   local commit
-  local cache="$(mktemp "${TMPDIR/XXXXX}")"
+  local cache="$(mktemp "${TMPDIR}/XXXXX")"
   local card
   local since="$((EPOCHSECONDS-Expiry))"
   local parent_commit_time="${since}"
