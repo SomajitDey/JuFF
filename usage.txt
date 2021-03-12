@@ -3,21 +3,24 @@ juff is a server-less messenger for 1-2-1 crypt-anon chat & file-sharing
 Read more about it at:
 
 Usage:
-juff [-i|--inbox <directory>] [<recipient-id>] [-p|--payload] [<string|path>]
+juff [-u|--user <email|hash|alias>] [<recipient-id>] [[-p|--payload] <string|path>]
+juff [-pass|--password <password>]
 juff [-s|--sync|-d|--daemon]
 juff [-h|--help|-v|--version]
 
 Options:
-  -i | --inbox <directory>
-     Specify your juff inbox if it is anything other than the default
+  -u|--user <email|hash|alias>
+     Specify your login account. If absent, the user that last logged in is used.
   <recipient-id>
-     Recipient's email-id / sha256 hash of email-id / a name from the saved contacts.
+     Recipient's email-id / sha256 hash of email-id / alias from the saved contacts.
      If recipient is valid, and string/path specified, msg is sent and juff quits.
      Otherwise, juff becomes interactive.
   -p|--payload
      This specifier is required only if recipient-id is absent.
   <string|path>
      Text string or the relative/absolute path of the file/directory to be sent.
+  -pass|--password <password>
+     Specify the password on command line.
   -s | --sync
      Sync once in foreground, notify and quit.
   -d | --daemon

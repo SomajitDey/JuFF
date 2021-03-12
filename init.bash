@@ -6,21 +6,25 @@
 
 # Somajit Dey <dey.somajit@gmail.com> March 2021
 
-User_mode="on" # Off for server
+User_mode="on" # "off", if server
 
+export Inbox="${HOME}/juff-inbox"; mkdir -p "${Inbox}"
 export Cache="${HOME}/.juff"; mkdir -p "${Cache}"
 
-Code_repo_remote=
+export Code_repo_remote=
 export Code_repo_local="${Cache}/codebase"
 
-# Download codebase if not existing; update otherwise
+# Download codebase if not existing; install previously fetched update otherwise
+# To be executed in background
 update(){
+  export GIT_WORK_TREE="${Code_repo_local}"
+  export GIT_DIR="${GIT_WORK_TREE}/.git"
   if [[ ! -d "${Code_repo_local}" ]]; then
     mkdir -p "${Code_repo_local}"
     git clone --quiet --depth=1 --no-tags "${Code_repo_remote}" \
     "${Code_repo_local}" || return 1
   else
-    git pull --quiet --depth=1 --no-tags "${Code_repo_remote}" || return 2
+    git merge --quiet FETCH_HEAD || return 2
   fi
   return 0
 } &>/dev/null
@@ -32,12 +36,12 @@ export TMPDIR="${Cache}/tmp"; rm -rf "$TMPDIR"; mkdir -p "$TMPDIR"
 # Define and export tmpfile generator
 # Usage: filename="$(tmpfile)"
 tmpfile(){
-  mktemp "${TMPDIR}/XXXXX"
+  mktemp "${TMPDIR}/XXXXX.tmp"
 }
 export -f tmpfile
 
 # Define and export function to show error msg and exit
-# Usage: error_exit "message to display"
+# Usage: error_exit "message to be displayed"
 error_exit(){
   local error_msg="${1:-"Unknown error"}"
   local exit_code="${2:-"1"}"
@@ -46,13 +50,20 @@ error_exit(){
 } >&2
 export -f error_exit
 
-Default_inbox="${HOME}/juff-inbox"
-
 wait "${update_pid}"
 if (($?==1)); then
   rm -rf "${Code_repo_local}"
-  error_exit "Code download failed. Possibly a problem with network connection"
+  error_exit "ERROR: Code download failed.\nCheck your network connection"
+elif (($?==2)); then
+  error_exit "ERROR: Installation of previously fetched release failed"
 fi
+
+# Fetch latest release. To be executed in background
+fetch_latest_release(){
+  export GIT_DIR="${Code_repo_local}/.git"
+  git fetch --quiet --depth=1 --no-tags "${Code_repo_remote}"
+} &>/dev/null
+fetch_latest_release &
 
 # Launch driver/server
 if [[ "${User_mode}"=="on" ]]; then
